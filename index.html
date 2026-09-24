@@ -261,7 +261,31 @@
     }
     .fixed-name { font-weight: 600; }
     .fixed-amt { font-variant-numeric: tabular-nums; }
+.fixed-row {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 6px 0;
+}
 
+.fixed-label {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex: 1;
+  cursor: pointer;
+}
+
+.fixed-label input[type="checkbox"] {
+  margin: 0;
+  cursor: pointer;
+}
+
+.fixed-amt {
+  margin-left: auto;
+  font-weight: 600;
+  color: var(--blue-800);
+}
     /* Modal */
     .modal-backdrop {
       position: fixed;
@@ -665,22 +689,38 @@
     }
 
     function renderFixedList() {
-      if (!fixedCosts.length) {
-        fixedList.textContent = 'No fixed costs.';
-        return;
-      }
-      fixedList.innerHTML = '';
-      for (const f of fixedCosts) {
-        const nameEl = document.createElement('div');
-        nameEl.className = 'fixed-name';
-        nameEl.textContent = f.name;
-        const amtEl = document.createElement('div');
-        amtEl.className = 'fixed-amt';
-        amtEl.textContent = `$${Number(f.amount).toLocaleString()}`;
-        fixedList.appendChild(nameEl);
-        fixedList.appendChild(amtEl);
-      }
-    }
+     if (!fixedCosts.length) {
+  fixedList.textContent = 'No fixed costs.';
+  return;
+}
+fixedList.innerHTML = '';
+for (const f of fixedCosts) {
+  const row = document.createElement('div');
+  row.className = 'fixed-row';
+
+  const label = document.createElement('label');
+  label.className = 'fixed-label';
+
+  const checkbox = document.createElement('input');
+  checkbox.type = 'checkbox';
+  checkbox.checked = !!f.is_paid;
+  checkbox.onchange = () => toggleFixedPaid(f.id, checkbox.checked);
+
+  const nameEl = document.createElement('span');
+  nameEl.className = 'fixed-name';
+  nameEl.textContent = f.name;
+
+  const amtEl = document.createElement('span');
+  amtEl.className = 'fixed-amt';
+  amtEl.textContent = `$${Number(f.amount).toLocaleString()}`;
+
+  label.appendChild(checkbox);
+  label.appendChild(nameEl);
+  label.appendChild(amtEl);
+
+  row.appendChild(label);
+  fixedList.appendChild(row);
+}
 
     function renderBudgetSummary() {
       if (!settings) {
