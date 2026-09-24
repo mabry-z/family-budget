@@ -639,7 +639,7 @@
     async function loadExpenses(period) {
       const { data, error } = await supabase
         .from('expenses')
-        .select('category, amount, card, created_at')
+        .select('id, category, amount, card, created_at')
         .eq('period_start_day', period.startDay)
         .eq('month', period.month)
         .eq('year', period.year)
@@ -792,9 +792,29 @@
             const mm = String(date.getMonth()+1).padStart(2,'0');
             const dd = String(date.getDate()).padStart(2,'0');
             right.textContent = `${e.card} • ${mm}/${dd}`;
-            row.appendChild(left);
-            row.appendChild(right);
-            win.appendChild(row);
+           const deleteBtn = document.createElement('button');
+deleteBtn.type = 'button';
+deleteBtn.className = 'btn secondary';
+deleteBtn.textContent = 'Delete';
+deleteBtn.style.padding = '4px 8px';
+deleteBtn.style.fontSize = '0.72rem';
+
+deleteBtn.addEventListener('click', (event) => {
+  event.preventDefault();
+  event.stopPropagation();
+  deleteExpense(e.id);
+});
+
+const rightWrap = document.createElement('div');
+rightWrap.style.display = 'flex';
+rightWrap.style.alignItems = 'center';
+rightWrap.style.gap = '6px';
+rightWrap.appendChild(right);
+rightWrap.appendChild(deleteBtn);
+
+row.appendChild(left);
+row.appendChild(rightWrap);
+win.appendChild(row);
           }
         }
 
