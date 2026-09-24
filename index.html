@@ -4,10 +4,8 @@
   <meta charset="UTF-8" />
   <title>Family Budget</title>
   <meta name="viewport" content="width=device-width, initial-scale=1" />
-
   <style>
     :root {
-      --blue-950: #08233a;
       --blue-900: #0f2b46;
       --blue-800: #163a5a;
       --blue-700: #1d4a6f;
@@ -22,86 +20,61 @@
       --cream-200: #fff1d4;
       --cream-300: #ffe7b8;
       --cream-400: #ffd794;
-      --danger: #b53b43;
-      --danger-soft: #fff0ef;
-      --success: #1d7b5f;
+      --glass-bg: rgba(255, 255, 255, 0.18);
+      --glass-border: rgba(255, 255, 255, 0.35);
       --shadow: 0 10px 30px rgba(15, 43, 70, 0.25);
     }
 
-    * {
-      box-sizing: border-box;
-    }
-
-    html,
-    body {
-      min-height: 100vh;
+    * { box-sizing: border-box; }
+    html, body {
       margin: 0;
-    }
-
-    body {
+      font-family: ui-sans-serif, system-ui, -apple-system, "Segoe UI", Roboto, "Helvetica Neue", Arial, "Noto Sans", "Apple Color Emoji", "Segoe UI Emoji";
+      background: linear-gradient(135deg, var(--blue-900), var(--blue-700), var(--blue-500));
       color: var(--blue-900);
-      font-family: ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI",
-        Roboto, "Helvetica Neue", Arial, sans-serif;
-      background: linear-gradient(135deg, var(--blue-950), var(--blue-700), var(--blue-500));
-    }
-
-    button,
-    input,
-    select {
-      font: inherit;
+      min-height: 100vh;
     }
 
     .wave-bg {
       position: fixed;
-      z-index: -1;
       inset: 0;
+      z-index: -1;
       overflow: hidden;
       pointer-events: none;
     }
-
     .wave {
       position: absolute;
-      right: -10%;
       left: -10%;
-      height: 42vh;
-      opacity: 0.25;
+      right: -10%;
+      height: 40vh;
       background: radial-gradient(ellipse at center, var(--cream-200) 0%, transparent 70%);
+      opacity: 0.25;
       filter: blur(40px);
       transform: translateY(-20%);
       animation: float 12s ease-in-out infinite;
     }
-
     .wave:nth-child(2) {
-      top: 39%;
+      top: 40%;
       height: 50vh;
-      opacity: 0.20;
       background: radial-gradient(ellipse at center, var(--cream-300) 0%, transparent 70%);
+      opacity: 0.2;
       animation-delay: -4s;
     }
-
     .wave:nth-child(3) {
       top: 75%;
       height: 45vh;
-      opacity: 0.22;
       background: radial-gradient(ellipse at center, var(--cream-100) 0%, transparent 70%);
+      opacity: 0.22;
       animation-delay: -8s;
     }
-
     @keyframes float {
-      0%,
-      100% {
-        transform: translateY(-20%) scale(1);
-      }
-
-      50% {
-        transform: translateY(-10%) scale(1.05);
-      }
+      0%, 100% { transform: translateY(-20%) scale(1); }
+      50% { transform: translateY(-10%) scale(1.05); }
     }
 
     .container {
-      width: min(1100px, calc(100% - 32px));
+      max-width: 1100px;
       margin: 0 auto;
-      padding: 24px 0 80px;
+      padding: 24px 16px 80px;
     }
 
     header {
@@ -112,454 +85,274 @@
       margin-bottom: 20px;
     }
 
-    .header-actions {
-      display: flex;
-      flex-wrap: wrap;
-      gap: 10px;
+    .period-display {
+      background: linear-gradient(135deg, rgba(255,255,255,0.9), rgba(255,255,255,0.75));
+      border: 1px solid var(--glass-border);
+      border-radius: 16px;
+      padding: 14px 18px;
+      box-shadow: var(--shadow);
+      backdrop-filter: blur(10px);
+      -webkit-backdrop-filter: blur(10px);
+      font-weight: 600;
+      color: var(--blue-800);
+      flex: 1;
     }
 
-    .period-display,
+    .btn {
+      appearance: none;
+      border: none;
+      border-radius: 12px;
+      padding: 10px 16px;
+      font-weight: 600;
+      cursor: pointer;
+      transition: transform 0.12s ease, box-shadow 0.12s ease, background 0.2s ease;
+      box-shadow: 0 6px 18px rgba(15,43,70,0.25);
+      background: linear-gradient(135deg, var(--blue-400), var(--blue-600));
+      color: white;
+    }
+    .btn:hover { transform: translateY(-1px); }
+    .btn:active { transform: translateY(0); }
+    .btn.secondary {
+      background: linear-gradient(135deg, var(--cream-200), var(--cream-300));
+      color: var(--blue-900);
+    }
+
     .card {
-      border: 1px solid rgba(255, 255, 255, 0.42);
+      background: linear-gradient(135deg, rgba(255,255,255,0.95), rgba(255,255,255,0.85));
+      border: 1px solid var(--glass-border);
+      border-radius: 18px;
+      padding: 18px;
       box-shadow: var(--shadow);
       backdrop-filter: blur(12px);
       -webkit-backdrop-filter: blur(12px);
-    }
-
-    .period-display {
-      flex: 1;
-      padding: 14px 18px;
-      border-radius: 16px;
-      color: var(--blue-800);
-      font-weight: 700;
-      background: linear-gradient(135deg, rgba(255, 255, 255, 0.93), rgba(255, 255, 255, 0.76));
-    }
-
-    .card {
-      padding: 18px;
-      border-radius: 18px;
-      background: linear-gradient(135deg, rgba(255, 255, 255, 0.96), rgba(255, 255, 255, 0.86));
-    }
-
-    .section-title {
-      margin: 0 0 11px;
-      color: var(--blue-800);
-      font-size: 1.05rem;
-      font-weight: 800;
     }
 
     .grid {
       display: grid;
       gap: 16px;
     }
+    .grid.two { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+    .grid.three { grid-template-columns: repeat(3, minmax(0, 1fr)); }
+    .grid.four { grid-template-columns: repeat(4, minmax(0, 1fr)); }
 
-    .grid.two {
-      grid-template-columns: repeat(2, minmax(0, 1fr));
+    @media (max-width: 900px) {
+      .grid.two, .grid.three, .grid.four { grid-template-columns: 1fr; }
     }
 
-    .grid.four {
-      grid-template-columns: repeat(4, minmax(0, 1fr));
-    }
-
-    .btn {
-      appearance: none;
-      border: 0;
-      border-radius: 12px;
-      padding: 10px 16px;
-      color: #fff;
+    .section-title {
+      font-size: 1.05rem;
       font-weight: 700;
-      cursor: pointer;
-      background: linear-gradient(135deg, var(--blue-400), var(--blue-600));
-      box-shadow: 0 6px 18px rgba(15, 43, 70, 0.25);
-      transition: transform 0.12s ease, opacity 0.12s ease;
+      color: var(--blue-800);
+      margin: 0 0 10px;
     }
 
-    .btn:hover {
-      transform: translateY(-1px);
+    .expense-category {
+      position: relative;
+      padding: 16px;
+      border-radius: 16px;
+      background: linear-gradient(135deg, var(--cream-100), var(--cream-200));
+      border: 1px solid rgba(255,255,255,0.6);
+      box-shadow: 0 8px 22px rgba(15,43,70,0.18);
+      transition: transform 0.15s ease, box-shadow 0.15s ease;
+      cursor: default;
+    }
+    .expense-category:hover {
+      transform: translateY(-2px);
+      box-shadow: 0 12px 28px rgba(15,43,70,0.22);
     }
 
-    .btn:active {
-      transform: translateY(0);
+    .cat-label {
+      font-size: 0.9rem;
+      font-weight: 700;
+      color: var(--blue-700);
+      margin-bottom: 6px;
     }
-
-    .btn.secondary {
+    .cat-remaining {
+      font-size: 1.6rem;
+      font-weight: 800;
       color: var(--blue-900);
-      background: linear-gradient(135deg, var(--cream-200), var(--cream-300));
+    }
+    .cat-sub {
+      font-size: 0.8rem;
+      color: var(--blue-600);
+      margin-top: 4px;
     }
 
-    .btn.delete {
-      padding: 5px 8px;
-      border: 1px solid rgba(181, 59, 67, 0.25);
-      color: var(--danger);
-      font-size: 0.72rem;
-      box-shadow: none;
-      background: var(--danger-soft);
+    /* Liquid glass hover window */
+    .liquid-hover {
+      position: absolute;
+      inset: auto 0 0 0;
+      transform: translateY(10px) scale(0.98);
+      opacity: 0;
+      pointer-events: none;
+      transition: opacity 0.18s ease, transform 0.18s ease;
+      z-index: 5;
+    }
+    .expense-category:hover .liquid-hover {
+      opacity: 1;
+      transform: translateY(0) scale(1);
+      pointer-events: auto;
+    }
+    .liquid-window {
+      margin: 0 8px 10px;
+      border-radius: 14px;
+      padding: 10px 12px;
+      background: linear-gradient(135deg, rgba(255,255,255,0.55), rgba(255,255,255,0.35));
+      border: 1px solid rgba(255,255,255,0.5);
+      box-shadow: 0 10px 26px rgba(15,43,70,0.22);
+      backdrop-filter: blur(14px) saturate(120%);
+      -webkit-backdrop-filter: blur(14px) saturate(120%);
+      max-height: 220px;
+      overflow: auto;
+    }
+    .liquid-item {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      padding: 6px 0;
+      border-bottom: 1px dashed rgba(15,43,70,0.12);
+      font-size: 0.85rem;
+      color: var(--blue-800);
+    }
+    .liquid-item:last-child { border-bottom: none; }
+    .liquid-meta {
+      font-size: 0.75rem;
+      color: var(--blue-600);
     }
 
     .form-row {
       display: grid;
       grid-template-columns: 1.2fr 0.7fr 0.7fr auto;
-      align-items: end;
       gap: 10px;
+      align-items: end;
     }
-
+    @media (max-width: 700px) {
+      .form-row { grid-template-columns: 1fr; }
+    }
     label {
       display: block;
-      margin-bottom: 6px;
-      color: var(--blue-700);
       font-size: 0.8rem;
-      font-weight: 800;
-    }
-
-    input,
-    select {
-      width: 100%;
-      padding: 10px 12px;
-      border: 1px solid rgba(15, 43, 70, 0.18);
-      border-radius: 10px;
-      outline: 0;
-      color: var(--blue-900);
-      background: rgba(255, 255, 255, 0.92);
-    }
-
-    input:focus,
-    select:focus {
-      border-color: var(--blue-400);
-      box-shadow: 0 0 0 3px rgba(74, 143, 189, 0.18);
-    }
-
-    .error {
-      display: none;
-      margin-top: 8px;
-      color: var(--danger);
-      font-size: 0.9rem;
       font-weight: 700;
-    }
-
-    /* Categories now sit immediately below Add Expense */
-    .categories-section {
-      margin: 16px 0;
-    }
-
-    .expense-category {
-      position: relative;
-      min-height: 142px;
-      padding: 16px;
-      overflow: visible;
-      border: 1px solid rgba(255, 255, 255, 0.62);
-      border-radius: 16px;
-      background: linear-gradient(135deg, var(--cream-100), var(--cream-200));
-      box-shadow: 0 8px 22px rgba(15, 43, 70, 0.18);
-      transition: transform 0.15s ease, box-shadow 0.15s ease;
-    }
-
-    .expense-category:hover {
-      z-index: 10;
-      transform: translateY(-2px);
-      box-shadow: 0 12px 28px rgba(15, 43, 70, 0.24);
-    }
-
-    .cat-label {
+      color: var(--blue-700);
       margin-bottom: 6px;
-      color: var(--blue-700);
-      font-size: 0.9rem;
-      font-weight: 800;
     }
-
-    .cat-remaining {
-      color: var(--blue-900);
-      font-size: 1.6rem;
-      font-weight: 900;
-      letter-spacing: -0.03em;
-    }
-
-    .cat-sub {
-      margin-top: 4px;
-      color: var(--blue-600);
-      font-size: 0.8rem;
-    }
-
-    .liquid-hover {
-      position: absolute;
-      z-index: 20;
-      top: calc(100% - 5px);
-      right: 0;
-      left: 0;
-      padding-top: 6px;
-      pointer-events: none;
-      opacity: 0;
-      transform: translateY(-4px) scale(0.98);
-      transition: opacity 0.18s ease, transform 0.18s ease;
-    }
-
-    .expense-category:hover .liquid-hover,
-    .expense-category:focus-within .liquid-hover {
-      pointer-events: auto;
-      opacity: 1;
-      transform: translateY(0) scale(1);
-    }
-
-    .liquid-window {
-      max-height: 280px;
-      margin: 0 3px;
+    input, select {
+      width: 100%;
+      border-radius: 10px;
+      border: 1px solid rgba(15,43,70,0.18);
       padding: 10px 12px;
-      overflow: auto;
-      border: 1px solid rgba(255, 255, 255, 0.58);
-      border-radius: 14px;
-      background: linear-gradient(135deg, rgba(255, 255, 255, 0.82), rgba(214, 238, 250, 0.66));
-      box-shadow: 0 12px 28px rgba(15, 43, 70, 0.28);
-      backdrop-filter: blur(16px) saturate(125%);
-      -webkit-backdrop-filter: blur(16px) saturate(125%);
-    }
-
-    .liquid-heading {
-      margin-bottom: 5px;
-      color: var(--blue-800);
-      font-size: 0.74rem;
-      font-weight: 900;
-      text-transform: uppercase;
-      letter-spacing: 0.04em;
-    }
-
-    .liquid-item {
-      display: grid;
-      grid-template-columns: 1fr auto;
-      gap: 8px;
-      align-items: center;
-      padding: 7px 0;
-      border-bottom: 1px dashed rgba(15, 43, 70, 0.15);
-      color: var(--blue-800);
-      font-size: 0.84rem;
-    }
-
-    .liquid-item:last-child {
-      border-bottom: 0;
-    }
-
-    .expense-detail {
-      display: flex;
-      min-width: 0;
-      flex-direction: column;
-      gap: 1px;
-    }
-
-    .expense-amount {
+      background: rgba(255,255,255,0.9);
       color: var(--blue-900);
-      font-weight: 800;
+      font-size: 0.95rem;
+      outline: none;
+      transition: border-color 0.15s ease, box-shadow 0.15s ease;
     }
-
-    .liquid-meta {
-      color: var(--blue-600);
-      font-size: 0.72rem;
-    }
-
-    .empty-history {
-      color: var(--blue-700);
-      font-size: 0.82rem;
+    input:focus, select:focus {
+      border-color: var(--blue-400);
+      box-shadow: 0 0 0 3px rgba(74,143,189,0.18);
     }
 
     .fixed-list {
       display: grid;
-      gap: 8px;
-    }
-
-    .fixed-row {
-      display: grid;
-      grid-template-columns: auto 1fr auto;
-      gap: 10px;
-      align-items: center;
-      padding: 9px 10px;
-      border: 1px solid rgba(15, 43, 70, 0.08);
-      border-radius: 12px;
+      grid-template-columns: 1fr auto;
+      gap: 6px 12px;
+      font-size: 0.9rem;
       color: var(--blue-800);
-      background: rgba(255, 255, 255, 0.45);
     }
+    .fixed-name { font-weight: 600; }
+    .fixed-amt { font-variant-numeric: tabular-nums; }
 
-    .fixed-row.paid {
-      opacity: 0.72;
-      background: rgba(224, 240, 249, 0.72);
-    }
-
-    .fixed-check {
-      display: inline-flex;
-      align-items: center;
-      justify-content: center;
-    }
-
-    .fixed-check input {
-      width: 18px;
-      height: 18px;
-      margin: 0;
-      accent-color: var(--success);
-      cursor: pointer;
-    }
-
-    .fixed-name {
-      overflow: hidden;
-      font-weight: 700;
-      text-overflow: ellipsis;
-      white-space: nowrap;
-    }
-
-    .fixed-row.paid .fixed-name {
-      text-decoration: line-through;
-    }
-
-    .fixed-amt {
-      font-variant-numeric: tabular-nums;
-      font-weight: 800;
-    }
-
-    .paid-badge {
-      color: var(--success);
-      font-size: 0.71rem;
-      font-weight: 900;
-    }
-
-    .summary-line {
-      display: flex;
-      justify-content: space-between;
-      gap: 16px;
-      padding: 7px 0;
-      border-bottom: 1px dashed rgba(15, 43, 70, 0.12);
-    }
-
-    .summary-line:last-child {
-      border-bottom: 0;
-    }
-
-    .summary-line strong {
-      color: var(--blue-900);
-    }
-
+    /* Modal */
     .modal-backdrop {
       position: fixed;
-      z-index: 50;
       inset: 0;
+      background: rgba(15, 43, 70, 0.55);
       display: none;
       align-items: center;
       justify-content: center;
+      z-index: 50;
       padding: 16px;
-      background: rgba(8, 35, 58, 0.57);
     }
-
     .modal {
-      width: min(720px, 100%);
+      width: 100%;
+      max-width: 720px;
       max-height: 90vh;
-      padding: 18px;
       overflow: auto;
-      border: 1px solid rgba(255, 255, 255, 0.5);
       border-radius: 18px;
-      background: linear-gradient(135deg, rgba(255, 255, 255, 0.98), rgba(255, 255, 255, 0.92));
-      box-shadow: 0 20px 60px rgba(15, 43, 70, 0.36);
+      background: linear-gradient(135deg, rgba(255,255,255,0.98), rgba(255,255,255,0.92));
+      border: 1px solid var(--glass-border);
+      box-shadow: 0 20px 60px rgba(15,43,70,0.35);
       backdrop-filter: blur(16px);
       -webkit-backdrop-filter: blur(16px);
+      padding: 18px;
     }
-
     .modal-header {
       display: flex;
       align-items: center;
       justify-content: space-between;
       margin-bottom: 12px;
     }
-
     .modal-title {
+      font-size: 1.1rem;
+      font-weight: 800;
       color: var(--blue-900);
-      font-size: 1.12rem;
-      font-weight: 900;
     }
-
     .close-btn {
-      padding: 4px 8px;
-      border: 0;
-      border-radius: 8px;
-      color: var(--blue-700);
-      font-size: 1.5rem;
-      line-height: 1;
-      cursor: pointer;
       background: transparent;
+      border: none;
+      font-size: 1.4rem;
+      line-height: 1;
+      color: var(--blue-700);
+      cursor: pointer;
+      padding: 4px 8px;
+      border-radius: 8px;
     }
-
-    .close-btn:hover {
-      background: rgba(15, 43, 70, 0.06);
-    }
+    .close-btn:hover { background: rgba(15,43,70,0.06); }
 
     .settings-section {
       margin-top: 16px;
       padding-top: 16px;
-      border-top: 1px dashed rgba(15, 43, 70, 0.15);
+      border-top: 1px dashed rgba(15,43,70,0.15);
     }
-
     .settings-grid {
       display: grid;
       grid-template-columns: repeat(2, minmax(0, 1fr));
       gap: 12px;
     }
-
-    .fixed-editor-row {
-      display: grid;
-      grid-template-columns: 1fr 120px auto;
-      gap: 8px;
-      align-items: center;
+    @media (max-width: 600px) {
+      .settings-grid { grid-template-columns: 1fr; }
     }
 
     .loading {
+      opacity: 0.6;
       pointer-events: none;
-      opacity: 0.62;
     }
-
-    @media (max-width: 900px) {
-      .grid.two,
-      .grid.four {
-        grid-template-columns: 1fr 1fr;
-      }
-    }
-
-    @media (max-width: 700px) {
-      header {
-        align-items: stretch;
-        flex-direction: column;
-      }
-
-      .header-actions {
-        display: grid;
-        grid-template-columns: 1fr 1fr;
-      }
-
-      .form-row,
-      .settings-grid,
-      .grid.two,
-      .grid.four {
-        grid-template-columns: 1fr;
-      }
-
-      .fixed-editor-row {
-        grid-template-columns: 1fr 105px auto;
-      }
+    .error {
+      color: #b00020;
+      font-weight: 600;
+      font-size: 0.9rem;
+      margin-top: 6px;
     }
   </style>
 </head>
-
 <body>
-  <div class="wave-bg" aria-hidden="true">
+  <div class="wave-bg">
     <div class="wave"></div>
     <div class="wave"></div>
     <div class="wave"></div>
   </div>
 
-  <main class="container">
+  <div class="container">
     <header>
       <div class="period-display" id="periodDisplay">Loading period…</div>
-
-      <div class="header-actions">
-        <button class="btn secondary" id="togglePeriodBtn" type="button">Switch Period</button>
-        <button class="btn" id="settingsBtn" type="button">Settings</button>
+      <div style="display:flex; gap:10px;">
+        <button class="btn secondary" id="togglePeriodBtn">Switch Period</button>
+        <button class="btn" id="settingsBtn">Settings</button>
       </div>
     </header>
 
-    <section class="card">
-      <h2 class="section-title">Add Expense</h2>
-
+    <section class="card" style="margin-bottom:16px;">
+      <div class="section-title">Add Expense</div>
       <form id="expenseForm" class="form-row">
         <div>
           <label for="category">Category</label>
@@ -570,12 +363,10 @@
             <option>Extra</option>
           </select>
         </div>
-
         <div>
           <label for="amount">Amount ($)</label>
-          <input id="amount" type="number" min="1" step="1" inputmode="numeric" placeholder="e.g. 45" required />
+          <input id="amount" type="number" min="0" step="1" placeholder="e.g. 45" required />
         </div>
-
         <div>
           <label for="card">Card</label>
           <select id="card" required>
@@ -584,166 +375,121 @@
             <option>Star Card</option>
           </select>
         </div>
-
         <div>
           <label>&nbsp;</label>
-          <button class="btn" type="submit">Add</button>
+          <button type="submit" class="btn">Add</button>
         </div>
       </form>
-
-      <div id="formError" class="error"></div>
+      <div id="formError" class="error" style="display:none;"></div>
     </section>
 
-    <!-- MOVED HERE: categories immediately beneath expense entry -->
-    <section class="categories-section">
-      <h2 class="section-title" style="color: var(--cream-50);">Expense Categories</h2>
-      <div class="grid four" id="categoriesGrid"></div>
-    </section>
-
-    <section class="grid two">
+    <section class="grid two" style="margin-bottom:16px;">
       <div class="card">
-        <h2 class="section-title">Fixed Expenses</h2>
+        <div class="section-title">Fixed Expenses (This Period)</div>
         <div id="fixedList" class="fixed-list">Loading…</div>
       </div>
-
       <div class="card">
-        <h2 class="section-title">Budget Summary</h2>
-        <div id="budgetSummary">Loading…</div>
+        <div class="section-title">Budget Summary</div>
+        <div id="budgetSummary" style="font-size:0.95rem; color:var(--blue-800);">Loading…</div>
       </div>
     </section>
-  </main>
 
-  <div class="modal-backdrop" id="settingsModal" role="dialog" aria-modal="true" aria-labelledby="settingsTitle">
+    <section>
+      <div class="section-title">Expense Categories</div>
+      <div class="grid four" id="categoriesGrid">
+        <!-- Filled by JS -->
+      </div>
+    </section>
+  </div>
+
+  <!-- Settings Modal -->
+  <div class="modal-backdrop" id="settingsModal">
     <div class="modal">
       <div class="modal-header">
-        <div class="modal-title" id="settingsTitle">Settings</div>
-        <button class="close-btn" id="closeSettingsBtn" type="button" aria-label="Close settings">&times;</button>
+        <div class="modal-title">Settings</div>
+        <button class="close-btn" id="closeSettingsBtn" aria-label="Close">&times;</button>
       </div>
 
-      <section class="settings-section">
-        <h2 class="section-title">Period & Starting Budget</h2>
-
+      <div class="settings-section">
+        <div class="section-title">Period & Starting Budget</div>
         <div class="settings-grid">
           <div>
             <label for="setMonth">Month</label>
             <select id="setMonth"></select>
           </div>
-
           <div>
             <label for="setYear">Year</label>
             <select id="setYear"></select>
           </div>
-
           <div>
             <label for="setStarting">Starting Budget ($)</label>
-            <input id="setStarting" type="number" min="0" step="1" inputmode="numeric" />
+            <input id="setStarting" type="number" min="0" step="1" />
           </div>
-
           <div>
             <label>&nbsp;</label>
-            <button class="btn" id="saveBudgetBtn" type="button">Save Budget</button>
+            <button class="btn" id="saveBudgetBtn">Save Budget</button>
           </div>
         </div>
+        <div id="budgetError" class="error" style="display:none;"></div>
+      </div>
 
-        <div id="budgetError" class="error"></div>
-      </section>
-
-      <section class="settings-section">
-        <h2 class="section-title">Category Amounts</h2>
-
+      <div class="settings-section">
+        <div class="section-title">Category Amounts</div>
         <div class="settings-grid">
           <div>
             <label for="setGas">Gas ($)</label>
-            <input id="setGas" type="number" min="0" step="1" inputmode="numeric" />
+            <input id="setGas" type="number" min="0" step="1" />
           </div>
-
           <div>
             <label for="setGroceries">Groceries ($)</label>
-            <input id="setGroceries" type="number" min="0" step="1" inputmode="numeric" />
+            <input id="setGroceries" type="number" min="0" step="1" />
           </div>
-
           <div>
             <label for="setEatOut">Eat Out ($)</label>
-            <input id="setEatOut" type="number" min="0" step="1" inputmode="numeric" />
+            <input id="setEatOut" type="number" min="0" step="1" />
           </div>
-
           <div>
             <label for="setExtra">Extra ($)</label>
-            <input id="setExtra" type="number" min="0" step="1" inputmode="numeric" />
+            <input id="setExtra" type="number" min="0" step="1" />
           </div>
-
           <div style="grid-column: 1 / -1;">
-            <button class="btn" id="saveCategoriesBtn" type="button">Save Categories</button>
+            <button class="btn" id="saveCategoriesBtn">Save Categories</button>
           </div>
         </div>
+        <div id="categoriesError" class="error" style="display:none;"></div>
+      </div>
 
-        <div id="categoriesError" class="error"></div>
-      </section>
-
-      <section class="settings-section">
-        <h2 class="section-title">Fixed Costs (This Period)</h2>
-
-        <div id="fixedCostsEditor" style="display: grid; gap: 10px;"></div>
-
-        <div style="margin-top: 10px;">
-          <button class="btn" id="addFixedBtn" type="button">Add Fixed Cost</button>
-          <button class="btn secondary" id="saveFixedBtn" type="button" style="margin-left: 8px;">Save Fixed Costs</button>
+      <div class="settings-section">
+        <div class="section-title">Fixed Costs (This Period)</div>
+        <div id="fixedCostsEditor" style="display:grid; gap:10px;"></div>
+        <div style="margin-top:10px;">
+          <button class="btn" id="addFixedBtn">Add Fixed Cost</button>
+          <button class="btn secondary" id="saveFixedBtn" style="margin-left:8px;">Save Fixed Costs</button>
         </div>
-
-        <div id="fixedError" class="error"></div>
-      </section>
+        <div id="fixedError" class="error" style="display:none;"></div>
+      </div>
     </div>
   </div>
 
   <script type="module">
-    /*
-      Replace the publishable key below with your real sb_publishable_... key.
-      Never put a Supabase secret key in this file.
-    */
+    // =========================
+    // CONFIGURE SUPABASE HERE
+    // =========================
     const SUPABASE_URL = 'https://ffjaqdtdoqkvlrcfqnrx.supabase.co';
     const SUPABASE_ANON_KEY = 'sb_publishable_lwdziY_FYlVNYoTh-Z2oTw_3SoDNDNr';
 
+    // Import Supabase JS client from CDN
     import { createClient } from 'https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/+esm';
 
     const supabase = createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
 
-    const MONTHS = [
-      'January', 'February', 'March', 'April', 'May', 'June',
-      'July', 'August', 'September', 'October', 'November', 'December'
-    ];
-
-    const CATEGORY_KEYS = ['Gas', 'Groceries', 'Eat Out', 'Extra'];
-
-    const DEFAULTS_FIRST_HALF = [
-      { name: 'Church', amount: 400 },
-      { name: 'Savings', amount: 1000 },
-      { name: 'Netflix', amount: 20 },
-      { name: 'Apple 1 Family', amount: 38 },
-      { name: 'Oura', amount: 12 },
-      { name: 'TKS Internet', amount: 90 }
-    ];
-
-    const DEFAULTS_SECOND_HALF = [
-      { name: 'Church', amount: 400 },
-      { name: 'Savings', amount: 1000 },
-      { name: 'Prison Fellow Intl', amount: 35 },
-      { name: 'HBO Max', amount: 33 },
-      { name: 'Tricare Dental', amount: 30 },
-      { name: 'NYT Games', amount: 2 }
-    ];
-
-    const today = new Date();
-
-    let currentPeriod = {
-      startDay: today.getDate() <= 15 ? 1 : 16,
-      month: today.getMonth() + 1,
-      year: today.getFullYear()
-    };
-
+    // State
+    let currentPeriod = { startDay: 1, month: 0, year: 0 }; // will be set on load
     let settings = null;
     let fixedCosts = [];
-    let expensesByCategory = emptyExpenseGroups();
+    let expensesByCategory = { Gas: [], Groceries: [], 'Eat Out': [], Extra: [] };
 
+    // DOM
     const periodDisplay = document.getElementById('periodDisplay');
     const togglePeriodBtn = document.getElementById('togglePeriodBtn');
     const settingsBtn = document.getElementById('settingsBtn');
@@ -753,6 +499,7 @@
     const budgetSummary = document.getElementById('budgetSummary');
     const categoriesGrid = document.getElementById('categoriesGrid');
 
+    // Modal elements
     const settingsModal = document.getElementById('settingsModal');
     const closeSettingsBtn = document.getElementById('closeSettingsBtn');
     const setMonth = document.getElementById('setMonth');
@@ -771,769 +518,699 @@
     const saveFixedBtn = document.getElementById('saveFixedBtn');
     const fixedError = document.getElementById('fixedError');
 
-    function emptyExpenseGroups() {
-      return { Gas: [], Groceries: [], 'Eat Out': [], Extra: [] };
-    }
+    // Helpers
+    const months = [
+      'January','February','March','April','May','June',
+      'July','August','September','October','November','December'
+    ];
 
-    function money(value) {
-      return `$${Number(value || 0).toLocaleString('en-US', {
-        maximumFractionDigits: 0
-      })}`;
-    }
-
-    function integer(value) {
-      return Math.floor(Number(value));
-    }
-
-    function total(items, property = 'amount') {
-      return items.reduce((sum, item) => sum + Number(item[property] || 0), 0);
-    }
-
-    function daysInMonth(month, year) {
+    function getDaysInMonth(month, year) {
       return new Date(year, month, 0).getDate();
     }
 
-    function periodDefaults(startDay) {
-      return startDay === 1 ? DEFAULTS_FIRST_HALF : DEFAULTS_SECOND_HALF;
-    }
-
-    function periodFixedTotal(startDay) {
-      return total(periodDefaults(startDay));
-    }
-
-    function currentPeriodKey(period = currentPeriod) {
-      return {
-        period_start_day: period.startDay,
-        month: period.month,
-        year: period.year
-      };
-    }
-
-    function showError(element, message) {
-      element.textContent = message;
-      element.style.display = 'block';
-    }
-
-    function clearError(element) {
-      element.textContent = '';
-      element.style.display = 'none';
-    }
-
-    function formatExpenseDate(timestamp) {
-      const date = new Date(timestamp);
-      return date.toLocaleDateString('en-US', {
-        month: 'numeric',
-        day: 'numeric',
-        year: '2-digit'
-      });
+    function periodFromDay(day) {
+      return day <= 15 ? 1 : 16;
     }
 
     async function ensureSettings(period) {
-      const key = currentPeriodKey(period);
-
       const { data, error } = await supabase
         .from('budget_settings')
         .select('*')
-        .match(key)
-        .maybeSingle();
-
-      if (error) throw error;
-      if (data) return data;
-
-      const starting = 3000;
-      const gas = 200;
-      const groceries = 450;
-      const eatOut = 100;
-      const extra = Math.max(0, starting - periodFixedTotal(period.startDay) - gas - groceries - eatOut);
-
-      const { data: created, error: insertError } = await supabase
-        .from('budget_settings')
-        .insert({
-          ...key,
-          starting_amount: starting,
-          gas_amount: gas,
-          groceries_amount: groceries,
-          eat_out_amount: eatOut,
-          extra_amount: extra
-        })
-        .select()
+        .eq('period_start_day', period.startDay)
+        .eq('month', period.month)
+        .eq('year', period.year)
         .single();
 
-      if (insertError) throw insertError;
-      return created;
+      if (error && error.code !== 'PGRST116') { // PGRST116 = not found
+        throw error;
+      }
+
+      if (!data) {
+        // Create default
+        const daysInMonth = getDaysInMonth(period.month, period.year);
+        const totalFixed = period.startDay === 1
+          ? (400 + 1000 + 20 + 38 + 12 + 90)
+          : (400 + 1000 + 35 + 33 + 30 + 2);
+
+        const defaultStarting = 3000; // fallback if not set yet
+        const gas = 200;
+        const groceries = 450;
+        const eatOut = 100;
+        const extra = Math.max(0, defaultStarting - totalFixed - gas - groceries - eatOut);
+
+        const { data: inserted, error: insError } = await supabase
+          .from('budget_settings')
+          .insert([{
+            period_start_day: period.startDay,
+            month: period.month,
+            year: period.year,
+            starting_amount: defaultStarting,
+            gas_amount: gas,
+            groceries_amount: groceries,
+            eat_out_amount: eatOut,
+            extra_amount: extra
+          }])
+          .select()
+          .single();
+
+        if (insError) throw insError;
+        return inserted;
+      }
+
+      return data;
     }
 
     async function ensureFixedCosts(period) {
-      const key = currentPeriodKey(period);
+      const defaults1 = [
+        { name: 'Church', amount: 400 },
+        { name: 'Savings', amount: 1000 },
+        { name: 'Netflix', amount: 20 },
+        { name: 'Apple 1 Family', amount: 38 },
+        { name: 'Oura', amount: 12 },
+        { name: 'TKS Internet', amount: 90 },
+      ];
+      const defaults2 = [
+        { name: 'Church', amount: 400 },
+        { name: 'Savings', amount: 1000 },
+        { name: 'Prison Fellow Intl', amount: 35 },
+        { name: 'HBO Max', amount: 33 },
+        { name: 'Tricare Dental', amount: 30 },
+        { name: 'NYT Games', amount: 2 },
+      ];
+      const defaults = period.startDay === 1 ? defaults1 : defaults2;
 
-      const { data: existing, error: existingError } = await supabase
+      const { data: existing } = await supabase
         .from('fixed_costs')
-        .select('id, name, amount, is_paid')
-        .match(key);
+        .select('name, amount')
+        .eq('period_start_day', period.startDay)
+        .eq('month', period.month)
+        .eq('year', period.year);
 
-      if (existingError) throw existingError;
+      const existingMap = new Map((existing || []).map(r => [r.name, r.amount]));
 
-      const existingNames = new Set((existing || []).map(item => item.name));
-
-      const inserts = periodDefaults(period.startDay)
-        .filter(item => !existingNames.has(item.name))
-        .map(item => ({
-          ...key,
-          name: item.name,
-          amount: item.amount,
-          is_paid: false
-        }));
-
-      if (inserts.length) {
-        const { error: insertError } = await supabase
-          .from('fixed_costs')
-          .insert(inserts);
-
-        if (insertError) throw insertError;
+      const toInsert = [];
+      for (const d of defaults) {
+        if (!existingMap.has(d.name)) {
+          toInsert.push({
+            period_start_day: period.startDay,
+            month: period.month,
+            year: period.year,
+            name: d.name,
+            amount: d.amount
+          });
+        }
       }
 
-      const { data: finalData, error: finalError } = await supabase
-        .from('fixed_costs')
-        .select('id, name, amount, is_paid')
-        .match(key)
-        .order('name', { ascending: true });
+      if (toInsert.length) {
+        await supabase.from('fixed_costs').insert(toInsert);
+      }
 
-      if (finalError) throw finalError;
+      const { data: finalData } = await supabase
+        .from('fixed_costs')
+        .select('name, amount')
+        .eq('period_start_day', period.startDay)
+        .eq('month', period.month)
+        .eq('year', period.year)
+        .order('name');
+
       return finalData || [];
     }
 
     async function loadExpenses(period) {
-      const key = currentPeriodKey(period);
-
       const { data, error } = await supabase
         .from('expenses')
-        .select('id, category, amount, card, created_at')
-        .match(key)
+        .select('category, amount, card, created_at')
+        .eq('period_start_day', period.startDay)
+        .eq('month', period.month)
+        .eq('year', period.year)
         .order('created_at', { ascending: false });
 
       if (error) throw error;
 
-      const groups = emptyExpenseGroups();
-
-      for (const expense of data || []) {
-        if (groups[expense.category]) groups[expense.category].push(expense);
+      const byCat = { Gas: [], Groceries: [], 'Eat Out': [], Extra: [] };
+      for (const e of (data || [])) {
+        if (byCat[e.category]) {
+          byCat[e.category].push(e);
+        }
       }
-
-      return groups;
-    }
-
-    function categoryBudgets() {
-      return {
-        Gas: Number(settings.gas_amount),
-        Groceries: Number(settings.groceries_amount),
-        'Eat Out': Number(settings.eat_out_amount),
-        Extra: Number(settings.extra_amount)
-      };
-    }
-
-    function categorySpent() {
-      return {
-        Gas: total(expensesByCategory.Gas),
-        Groceries: total(expensesByCategory.Groceries),
-        'Eat Out': total(expensesByCategory['Eat Out']),
-        Extra: total(expensesByCategory.Extra)
-      };
+      return byCat;
     }
 
     function renderPeriodDisplay() {
-      const startDay = currentPeriod.startDay;
-      const endDay = startDay === 1 ? 15 : daysInMonth(currentPeriod.month, currentPeriod.year);
-      const label = startDay === 1 ? '1st–15th' : `16th–${endDay}`;
-      const monthName = MONTHS[currentPeriod.month - 1];
-
-      periodDisplay.textContent = `${monthName} ${startDay}–${endDay}, ${currentPeriod.year} · ${label} Pay Period`;
+      const label = currentPeriod.startDay === 1 ? '1st–15th' : '16th–End';
+      const monthName = months[currentPeriod.month - 1];
+      const daysInMonth = getDaysInMonth(currentPeriod.month, currentPeriod.year);
+      const endDay = currentPeriod.startDay === 1 ? 15 : daysInMonth;
+      periodDisplay.textContent = `${label} • ${monthName} ${currentPeriod.year} (Current Period)`;
     }
 
     function renderFixedList() {
-      fixedList.innerHTML = '';
-
       if (!fixedCosts.length) {
-        fixedList.textContent = 'No fixed expenses for this period.';
+        fixedList.textContent = 'No fixed costs.';
         return;
       }
-
-      for (const fixed of fixedCosts) {
-        const row = document.createElement('div');
-        row.className = `fixed-row${fixed.is_paid ? ' paid' : ''}`;
-
-        const checkWrap = document.createElement('label');
-        checkWrap.className = 'fixed-check';
-        checkWrap.title = fixed.is_paid ? 'Mark as unpaid' : 'Mark as paid';
-
-        const check = document.createElement('input');
-        check.type = 'checkbox';
-        check.checked = Boolean(fixed.is_paid);
-        check.setAttribute('aria-label', `Mark ${fixed.name} as paid`);
-        check.addEventListener('change', async () => {
-          await toggleFixedPaid(fixed.id, check.checked);
-        });
-
-        checkWrap.appendChild(check);
-
-        const name = document.createElement('div');
-        name.className = 'fixed-name';
-        name.textContent = fixed.name;
-
-        const amountWrap = document.createElement('div');
-        amountWrap.style.textAlign = 'right';
-
-        const amount = document.createElement('div');
-        amount.className = 'fixed-amt';
-        amount.textContent = money(fixed.amount);
-
-        amountWrap.appendChild(amount);
-
-        if (fixed.is_paid) {
-          const badge = document.createElement('div');
-          badge.className = 'paid-badge';
-          badge.textContent = 'PAID';
-          amountWrap.appendChild(badge);
-        }
-
-        row.append(checkWrap, name, amountWrap);
-        fixedList.appendChild(row);
+      fixedList.innerHTML = '';
+      for (const f of fixedCosts) {
+        const nameEl = document.createElement('div');
+        nameEl.className = 'fixed-name';
+        nameEl.textContent = f.name;
+        const amtEl = document.createElement('div');
+        amtEl.className = 'fixed-amt';
+        amtEl.textContent = `$${Number(f.amount).toLocaleString()}`;
+        fixedList.appendChild(nameEl);
+        fixedList.appendChild(amtEl);
       }
     }
 
     function renderBudgetSummary() {
       if (!settings) {
-        budgetSummary.textContent = 'Loading…';
+        budgetSummary.textContent = 'Loading settings…';
         return;
       }
-
+      const totalFixed = fixedCosts.reduce((s, f) => s + Number(f.amount), 0);
       const start = Number(settings.starting_amount);
-      const fixedTotal = total(fixedCosts);
-      const paidFixedTotal = total(fixedCosts.filter(item => item.is_paid));
-      const budgets = categoryBudgets();
-      const spent = categorySpent();
-      const categoryBudgetTotal = Object.values(budgets).reduce((sum, amount) => sum + amount, 0);
-      const categorySpentTotal = Object.values(spent).reduce((sum, amount) => sum + amount, 0);
-      const categoryRemaining = Object.keys(budgets)
-        .reduce((sum, category) => sum + (budgets[category] - spent[category]), 0);
+      const gas = Number(settings.gas_amount);
+      const groceries = Number(settings.groceries_amount);
+      const eatOut = Number(settings.eat_out_amount);
+      const extra = Number(settings.extra_amount);
+
+      const spent = {
+        Gas: expensesByCategory.Gas.reduce((s, e) => s + e.amount, 0),
+        Groceries: expensesByCategory.Groceries.reduce((s, e) => s + e.amount, 0),
+        'Eat Out': expensesByCategory['Eat Out'].reduce((s, e) => s + e.amount, 0),
+        Extra: expensesByCategory.Extra.reduce((s, e) => s + e.amount, 0),
+      };
+
+      const remaining = {
+        Gas: Math.max(0, gas - spent.Gas),
+        Groceries: Math.max(0, groceries - spent.Groceries),
+        'Eat Out': Math.max(0, eatOut - spent['Eat Out']),
+        Extra: Math.max(0, extra - spent.Extra),
+      };
+
+      const totalCatBudget = gas + groceries + eatOut + extra;
+      const totalCatSpent = Object.values(spent).reduce((a,b)=>a+b,0);
+      const totalCatRemaining = Object.values(remaining).reduce((a,b)=>a+b,0);
 
       budgetSummary.innerHTML = `
-        <div class="summary-line"><span>Starting budget</span><strong>${money(start)}</strong></div>
-        <div class="summary-line"><span>Fixed expenses</span><strong>${money(fixedTotal)}</strong></div>
-        <div class="summary-line"><span>Fixed expenses paid</span><strong>${money(paidFixedTotal)}</strong></div>
-        <div class="summary-line"><span>Category budgets</span><strong>${money(categoryBudgetTotal)}</strong></div>
-        <div class="summary-line"><span>Category spending</span><strong>${money(categorySpentTotal)}</strong></div>
-        <div class="summary-line"><span>Category remaining</span><strong>${money(categoryRemaining)}</strong></div>
+        <div><strong>Starting:</strong> $${start.toLocaleString()}</div>
+        <div><strong>Fixed costs:</strong> $${totalFixed.toLocaleString()}</div>
+        <div><strong>Category budgets total:</strong> $${totalCatBudget.toLocaleString()}</div>
+        <div><strong>Spent (categories):</strong> $${totalCatSpent.toLocaleString()}</div>
+        <div><strong>Remaining (categories):</strong> $${totalCatRemaining.toLocaleString()}</div>
       `;
     }
 
     function renderCategories() {
       categoriesGrid.innerHTML = '';
-
       if (!settings) return;
 
-      const budgets = categoryBudgets();
-      const spent = categorySpent();
+      const gas = Number(settings.gas_amount);
+      const groceries = Number(settings.groceries_amount);
+      const eatOut = Number(settings.eat_out_amount);
+      const extra = Number(settings.extra_amount);
 
-      for (const category of CATEGORY_KEYS) {
-        const card = document.createElement('article');
+      const spent = {
+        Gas: expensesByCategory.Gas.reduce((s, e) => s + e.amount, 0),
+        Groceries: expensesByCategory.Groceries.reduce((s, e) => s + e.amount, 0),
+        'Eat Out': expensesByCategory['Eat Out'].reduce((s, e) => s + e.amount, 0),
+        Extra: expensesByCategory.Extra.reduce((s, e) => s + e.amount, 0),
+      };
+
+      const remaining = {
+        Gas: Math.max(0, gas - spent.Gas),
+        Groceries: Math.max(0, groceries - spent.Groceries),
+        'Eat Out': Math.max(0, eatOut - spent['Eat Out']),
+        Extra: Math.max(0, extra - spent.Extra),
+      };
+
+      const categories = [
+        { key: 'Gas', label: 'Gas', budget: gas, remaining: remaining.Gas },
+        { key: 'Groceries', label: 'Groceries', budget: groceries, remaining: remaining.Groceries },
+        { key: 'Eat Out', label: 'Eat Out', budget: eatOut, remaining: remaining['Eat Out'] },
+        { key: 'Extra', label: 'Extra', budget: extra, remaining: remaining.Extra },
+      ];
+
+      for (const c of categories) {
+        const card = document.createElement('div');
         card.className = 'expense-category';
-        card.tabIndex = 0;
 
         const label = document.createElement('div');
         label.className = 'cat-label';
-        label.textContent = category;
+        label.textContent = c.label;
 
-        const remaining = document.createElement('div');
-        remaining.className = 'cat-remaining';
-        remaining.textContent = money(budgets[category] - spent[category]);
+        const remainingEl = document.createElement('div');
+        remainingEl.className = 'cat-remaining';
+        remainingEl.textContent = `$${c.remaining.toLocaleString()}`;
 
         const sub = document.createElement('div');
         sub.className = 'cat-sub';
-        sub.textContent = `${money(spent[category])} spent of ${money(budgets[category])}`;
+        sub.textContent = `of $${c.budget.toLocaleString()} budget`;
 
+        // Liquid hover window
         const hover = document.createElement('div');
         hover.className = 'liquid-hover';
+        const win = document.createElement('div');
+        win.className = 'liquid-window';
 
-        const windowEl = document.createElement('div');
-        windowEl.className = 'liquid-window';
-
-        const heading = document.createElement('div');
-        heading.className = 'liquid-heading';
-        heading.textContent = 'Recent expenses · delete if needed';
-        windowEl.appendChild(heading);
-
-        const recent = expensesByCategory[category].slice(0, 5);
-
-        if (!recent.length) {
+        const last5 = expensesByCategory[c.key].slice(0, 5);
+        if (last5.length === 0) {
           const empty = document.createElement('div');
-          empty.className = 'empty-history';
-          empty.textContent = 'No expenses entered yet.';
-          windowEl.appendChild(empty);
+          empty.textContent = 'No expenses yet.';
+          empty.style.fontSize = '0.8rem';
+          empty.style.color = 'var(--blue-700)';
+          win.appendChild(empty);
         } else {
-          for (const expense of recent) {
+          for (const e of last5) {
             const row = document.createElement('div');
             row.className = 'liquid-item';
-
-            const detail = document.createElement('div');
-            detail.className = 'expense-detail';
-
-            const amount = document.createElement('div');
-            amount.className = 'expense-amount';
-            amount.textContent = money(expense.amount);
-
-            const meta = document.createElement('div');
-            meta.className = 'liquid-meta';
-            meta.textContent = `${expense.card} · ${formatExpenseDate(expense.created_at)}`;
-
-            detail.append(amount, meta);
-
-            const deleteButton = document.createElement('button');
-            deleteButton.type = 'button';
-            deleteButton.className = 'btn delete';
-            deleteButton.textContent = 'Delete';
-            deleteButton.setAttribute(
-              'aria-label',
-              `Delete ${money(expense.amount)} ${category} expense on ${formatExpenseDate(expense.created_at)}`
-            );
-
-            deleteButton.addEventListener('click', async (event) => {
-              event.preventDefault();
-              event.stopPropagation();
-
-              const confirmed = window.confirm(
-                `Delete this ${category} expense for ${money(expense.amount)} charged to ${expense.card}?`
-              );
-
-              if (confirmed) {
-                await deleteExpense(expense.id);
-              }
-            });
-
-            row.append(detail, deleteButton);
-            windowEl.appendChild(row);
+            const left = document.createElement('div');
+            left.textContent = `$${e.amount}`;
+            const right = document.createElement('div');
+            right.className = 'liquid-meta';
+            const date = new Date(e.created_at);
+            const mm = String(date.getMonth()+1).padStart(2,'0');
+            const dd = String(date.getDate()).padStart(2,'0');
+            right.textContent = `${e.card} • ${mm}/${dd}`;
+            row.appendChild(left);
+            row.appendChild(right);
+            win.appendChild(row);
           }
         }
 
-        hover.appendChild(windowEl);
-        card.append(label, remaining, sub, hover);
+        hover.appendChild(win);
+        card.appendChild(label);
+        card.appendChild(remainingEl);
+        card.appendChild(sub);
+        card.appendChild(hover);
         categoriesGrid.appendChild(card);
-      }
-    }
-
-    async function toggleFixedPaid(id, isPaid) {
-      try {
-        document.body.classList.add('loading');
-
-        const { error } = await supabase
-          .from('fixed_costs')
-          .update({ is_paid: isPaid })
-          .eq('id', id);
-
-        if (error) throw error;
-
-        await loadAll();
-      } catch (error) {
-        console.error(error);
-        alert(`Could not update payment status: ${error.message || error}`);
-        await loadAll();
-      } finally {
-        document.body.classList.remove('loading');
-      }
-    }
-
-    async function deleteExpense(id) {
-      try {
-        document.body.classList.add('loading');
-
-        const { error } = await supabase
-          .from('expenses')
-          .delete()
-          .eq('id', id);
-
-        if (error) throw error;
-
-        await loadAll();
-      } catch (error) {
-        console.error(error);
-        alert(`Could not delete expense: ${error.message || error}`);
-      } finally {
-        document.body.classList.remove('loading');
       }
     }
 
     async function loadAll() {
       try {
         document.body.classList.add('loading');
-        clearError(formError);
-        clearError(budgetError);
-        clearError(categoriesError);
-        clearError(fixedError);
+        formError.style.display = 'none';
+        budgetError.style.display = 'none';
+        categoriesError.style.display = 'none';
+        fixedError.style.display = 'none';
 
         settings = await ensureSettings(currentPeriod);
         fixedCosts = await ensureFixedCosts(currentPeriod);
         expensesByCategory = await loadExpenses(currentPeriod);
 
         renderPeriodDisplay();
-        renderCategories();
         renderFixedList();
         renderBudgetSummary();
-      } catch (error) {
-        console.error(error);
-        alert(`Error loading budget data: ${error.message || error}`);
+        renderCategories();
+      } catch (err) {
+        console.error(err);
+        alert('Error loading data: ' + (err.message || err));
       } finally {
         document.body.classList.remove('loading');
       }
     }
 
-    function populateMonthAndYear() {
-      for (let month = 1; month <= 12; month += 1) {
-        const option = document.createElement('option');
-        option.value = month;
-        option.textContent = MONTHS[month - 1];
-        setMonth.appendChild(option);
+    // Initialize period based on today
+    const today = new Date();
+    currentPeriod.month = today.getMonth() + 1;
+    currentPeriod.year = today.getFullYear();
+    currentPeriod.startDay = periodFromDay(today.getDate());
+
+    // Populate month/year selects in settings
+    (function initSettingsSelects() {
+      for (let i = 1; i <= 12; i++) {
+        const opt = document.createElement('option');
+        opt.value = i;
+        opt.textContent = months[i-1];
+        setMonth.appendChild(opt);
       }
-
-      const thisYear = today.getFullYear();
-      for (let year = thisYear - 1; year <= thisYear + 3; year += 1) {
-        const option = document.createElement('option');
-        option.value = year;
-        option.textContent = year;
-        setYear.appendChild(option);
+      const curYear = today.getFullYear();
+      for (let y = curYear - 1; y <= curYear + 2; y++) {
+        const opt = document.createElement('option');
+        opt.value = y;
+        opt.textContent = y;
+        setYear.appendChild(opt);
       }
-    }
+    })();
 
-    async function ensureSettingsForSelection() {
-      const period = {
-        startDay: currentPeriod.startDay,
-        month: Number(setMonth.value),
-        year: Number(setYear.value)
-      };
-
-      return ensureSettings(period);
-    }
-
-    async function rebuildFixedCostsEditor() {
-      fixedCostsEditor.innerHTML = '';
-
-      const selectedPeriod = {
-        startDay: currentPeriod.startDay,
-        month: Number(setMonth.value),
-        year: Number(setYear.value)
-      };
-
-      const selectedFixedCosts = await ensureFixedCosts(selectedPeriod);
-
-      for (const fixed of selectedFixedCosts) {
-        const row = document.createElement('div');
-        row.className = 'fixed-editor-row';
-
-        const name = document.createElement('input');
-        name.value = fixed.name;
-        name.dataset.id = fixed.id;
-        name.dataset.field = 'name';
-        name.setAttribute('aria-label', 'Fixed cost name');
-
-        const amount = document.createElement('input');
-        amount.type = 'number';
-        amount.min = '0';
-        amount.step = '1';
-        amount.inputMode = 'numeric';
-        amount.value = integer(fixed.amount);
-        amount.dataset.id = fixed.id;
-        amount.dataset.field = 'amount';
-        amount.setAttribute('aria-label', `${fixed.name} amount`);
-
-        const deleteButton = document.createElement('button');
-        deleteButton.type = 'button';
-        deleteButton.className = 'btn secondary';
-        deleteButton.textContent = 'Delete';
-
-        deleteButton.addEventListener('click', async () => {
-          const confirmed = window.confirm(`Delete fixed cost "${fixed.name}"?`);
-          if (!confirmed) return;
-
-          try {
-            document.body.classList.add('loading');
-
-            const { error } = await supabase
-              .from('fixed_costs')
-              .delete()
-              .eq('id', fixed.id);
-
-            if (error) throw error;
-
-            await rebuildFixedCostsEditor();
-
-            if (
-              selectedPeriod.month === currentPeriod.month &&
-              selectedPeriod.year === currentPeriod.year
-            ) {
-              await loadAll();
-            }
-          } catch (error) {
-            console.error(error);
-            alert(`Could not delete fixed cost: ${error.message || error}`);
-          } finally {
-            document.body.classList.remove('loading');
-          }
-        });
-
-        row.append(name, amount, deleteButton);
-        fixedCostsEditor.appendChild(row);
-      }
-    }
-
+    // Toggle period
     togglePeriodBtn.addEventListener('click', () => {
       currentPeriod.startDay = currentPeriod.startDay === 1 ? 16 : 1;
       loadAll();
     });
 
+    // Open/close settings
     settingsBtn.addEventListener('click', async () => {
-      try {
-        setMonth.value = currentPeriod.month;
-        setYear.value = currentPeriod.year;
-        setStarting.value = integer(settings.starting_amount);
-        setGas.value = integer(settings.gas_amount);
-        setGroceries.value = integer(settings.groceries_amount);
-        setEatOut.value = integer(settings.eat_out_amount);
-        setExtra.value = integer(settings.extra_amount);
+      // Pre-fill settings modal
+      setMonth.value = currentPeriod.month;
+      setYear.value = currentPeriod.year;
+      setStarting.value = Number(settings.starting_amount);
+      setGas.value = Number(settings.gas_amount);
+      setGroceries.value = Number(settings.groceries_amount);
+      setEatOut.value = Number(settings.eat_out_amount);
+      setExtra.value = Number(settings.extra_amount);
 
-        await rebuildFixedCostsEditor();
-        settingsModal.style.display = 'flex';
-      } catch (error) {
-        console.error(error);
-        alert(`Could not open settings: ${error.message || error}`);
-      }
+      // Build fixed costs editor
+      await rebuildFixedCostsEditor();
+
+      settingsModal.style.display = 'flex';
     });
 
     closeSettingsBtn.addEventListener('click', () => {
       settingsModal.style.display = 'none';
     });
 
-    settingsModal.addEventListener('click', event => {
-      if (event.target === settingsModal) settingsModal.style.display = 'none';
+    settingsModal.addEventListener('click', (e) => {
+      if (e.target === settingsModal) {
+        settingsModal.style.display = 'none';
+      }
     });
 
-    expenseForm.addEventListener('submit', async event => {
-      event.preventDefault();
-      clearError(formError);
-
+    // Add expense
+    expenseForm.addEventListener('submit', async (e) => {
+      e.preventDefault();
+      formError.style.display = 'none';
       const category = document.getElementById('category').value;
-      const amount = integer(document.getElementById('amount').value);
+      const amountRaw = document.getElementById('amount').value;
       const card = document.getElementById('card').value;
 
-      if (!CATEGORY_KEYS.includes(category)) {
-        showError(formError, 'Choose a valid expense category.');
-        return;
-      }
-
-      if (!Number.isInteger(amount) || amount <= 0) {
-        showError(formError, 'Enter a positive whole-dollar amount.');
+      const amount = Math.floor(Number(amountRaw));
+      if (!Number.isFinite(amount) || amount <= 0) {
+        formError.textContent = 'Amount must be a positive whole number.';
+        formError.style.display = 'block';
         return;
       }
 
       try {
         document.body.classList.add('loading');
-
-        const { error } = await supabase
-          .from('expenses')
-          .insert({
-            ...currentPeriodKey(),
-            category,
-            amount,
-            card
-          });
-
+        const { error } = await supabase.from('expenses').insert([{
+          period_start_day: currentPeriod.startDay,
+          month: currentPeriod.month,
+          year: currentPeriod.year,
+          category,
+          amount,
+          card
+        }]);
         if (error) throw error;
-
         document.getElementById('amount').value = '';
         await loadAll();
-      } catch (error) {
-        console.error(error);
-        showError(formError, `Could not add expense: ${error.message || error}`);
-      } finally {
+      } catch (err) {
+        console.error(err);
+        formError.textContent = 'Error adding expense: ' + (err.message || err);
+        formError.style.display = 'block';
         document.body.classList.remove('loading');
       }
     });
 
+    // Save budget (starting amount)
     saveBudgetBtn.addEventListener('click', async () => {
-      clearError(budgetError);
+      budgetError.style.display = 'none';
+      const month = Number(setMonth.value);
+      const year = Number(setYear.value);
+      const starting = Math.floor(Number(setStarting.value));
 
-      const selectedMonth = Number(setMonth.value);
-      const selectedYear = Number(setYear.value);
-      const starting = integer(setStarting.value);
-
-      if (!Number.isInteger(starting) || starting < 0) {
-        showError(budgetError, 'Enter a valid whole-dollar starting budget.');
+      if (!month || !year || !Number.isFinite(starting)) {
+        budgetError.textContent = 'Invalid budget values.';
+        budgetError.style.display = 'block';
         return;
       }
 
       try {
         document.body.classList.add('loading');
+        // Upsert settings row for selected month/year/period
+        const periodStartDay = currentPeriod.startDay;
 
-        const selectedSettings = await ensureSettingsForSelection();
-
-        const { error } = await supabase
+        const { data: existing } = await supabase
           .from('budget_settings')
-          .update({ starting_amount: starting })
-          .eq('id', selectedSettings.id);
+          .select('id')
+          .eq('period_start_day', periodStartDay)
+          .eq('month', month)
+          .eq('year', year)
+          .single();
 
-        if (error) throw error;
-
-        if (selectedMonth === currentPeriod.month && selectedYear === currentPeriod.year) {
-          await loadAll();
-          setStarting.value = integer(settings.starting_amount);
+        if (existing) {
+          const { error } = await supabase
+            .from('budget_settings')
+            .update({ starting_amount: starting })
+            .eq('id', existing.id);
+          if (error) throw error;
         } else {
-          alert('Starting budget saved for the selected period.');
-        }
-      } catch (error) {
-        console.error(error);
-        showError(budgetError, `Could not save budget: ${error.message || error}`);
-      } finally {
-        document.body.classList.remove('loading');
-      }
-    });
+          // Create new row (keep other fields default)
+          const totalFixed = periodStartDay === 1
+            ? (400 + 1000 + 20 + 38 + 12 + 90)
+            : (400 + 1000 + 35 + 33 + 30 + 2);
+          const gas = Number(setGas.value) || 200;
+          const groceries = Number(setGroceries.value) || 450;
+          const eatOut = Number(setEatOut.value) || 100;
+          const extra = Math.max(0, starting - totalFixed - gas - groceries - eatOut);
 
-    saveCategoriesBtn.addEventListener('click', async () => {
-      clearError(categoriesError);
-
-      const selectedMonth = Number(setMonth.value);
-      const selectedYear = Number(setYear.value);
-      const gas = integer(setGas.value);
-      const groceries = integer(setGroceries.value);
-      const eatOut = integer(setEatOut.value);
-      const extra = integer(setExtra.value);
-
-      if ([gas, groceries, eatOut, extra].some(value => !Number.isInteger(value) || value < 0)) {
-        showError(categoriesError, 'Enter valid whole-dollar category amounts.');
-        return;
-      }
-
-      try {
-        document.body.classList.add('loading');
-
-        const selectedSettings = await ensureSettingsForSelection();
-
-        const { error } = await supabase
-          .from('budget_settings')
-          .update({
+          const { error } = await supabase.from('budget_settings').insert([{
+            period_start_day: periodStartDay,
+            month,
+            year,
+            starting_amount: starting,
             gas_amount: gas,
             groceries_amount: groceries,
             eat_out_amount: eatOut,
             extra_amount: extra
-          })
-          .eq('id', selectedSettings.id);
+          }]);
+          if (error) throw error;
+        }
 
-        if (error) throw error;
-
-        if (selectedMonth === currentPeriod.month && selectedYear === currentPeriod.year) {
+        // If editing current period, refresh state
+        if (month === currentPeriod.month && year === currentPeriod.year) {
           await loadAll();
         } else {
-          alert('Category amounts saved for the selected period.');
+          alert('Budget saved for selected period.');
         }
-      } catch (error) {
-        console.error(error);
-        showError(categoriesError, `Could not save category amounts: ${error.message || error}`);
+      } catch (err) {
+        console.error(err);
+        budgetError.textContent = 'Error saving budget: ' + (err.message || err);
+        budgetError.style.display = 'block';
       } finally {
         document.body.classList.remove('loading');
       }
     });
 
-    addFixedBtn.addEventListener('click', async () => {
-      const selectedMonth = Number(setMonth.value);
-      const selectedYear = Number(setYear.value);
-      const name = window.prompt('Fixed cost name:');
+    // Save categories
+    saveCategoriesBtn.addEventListener('click', async () => {
+      categoriesError.style.display = 'none';
+      const month = Number(setMonth.value);
+      const year = Number(setYear.value);
+      const gas = Math.floor(Number(setGas.value));
+      const groceries = Math.floor(Number(setGroceries.value));
+      const eatOut = Math.floor(Number(setEatOut.value));
+      const extra = Math.floor(Number(setExtra.value));
 
-      if (!name || !name.trim()) return;
-
-      const amountText = window.prompt('Fixed cost amount (whole dollars):', '0');
-      if (amountText === null) return;
-
-      const amount = integer(amountText);
-
-      if (!Number.isInteger(amount) || amount < 0) {
-        alert('Please enter a valid whole-dollar amount.');
+      if ([gas, groceries, eatOut, extra].some(v => !Number.isFinite(v) || v < 0)) {
+        categoriesError.textContent = 'Invalid category amounts.';
+        categoriesError.style.display = 'block';
         return;
       }
 
       try {
         document.body.classList.add('loading');
+        const periodStartDay = currentPeriod.startDay;
 
-        const { error } = await supabase
-          .from('fixed_costs')
-          .insert({
-            period_start_day: currentPeriod.startDay,
-            month: selectedMonth,
-            year: selectedYear,
-            name: name.trim(),
-            amount,
-            is_paid: false
-          });
+        const { data: existing } = await supabase
+          .from('budget_settings')
+          .select('id, starting_amount')
+          .eq('period_start_day', periodStartDay)
+          .eq('month', month)
+          .eq('year', year)
+          .single();
 
+        if (existing) {
+          const { error } = await supabase
+            .from('budget_settings')
+            .update({
+              gas_amount: gas,
+              groceries_amount: groceries,
+              eat_out_amount: eatOut,
+              extra_amount: extra
+            })
+            .eq('id', existing.id);
+          if (error) throw error;
+        } else {
+          // Create new row with default starting if not exists
+          const totalFixed = periodStartDay === 1
+            ? (400 + 1000 + 20 + 38 + 12 + 90)
+            : (400 + 1000 + 35 + 33 + 30 + 2);
+          const starting = totalFixed + gas + groceries + eatOut + extra;
+
+          const { error } = await supabase.from('budget_settings').insert([{
+            period_start_day: periodStartDay,
+            month,
+            year,
+            starting_amount: starting,
+            gas_amount: gas,
+            groceries_amount: groceries,
+            eat_out_amount: eatOut,
+            extra_amount: extra
+          }]);
+          if (error) throw error;
+        }
+
+        if (month === currentPeriod.month && year === currentPeriod.year) {
+          await loadAll();
+        } else {
+          alert('Category amounts saved for selected period.');
+        }
+      } catch (err) {
+        console.error(err);
+        categoriesError.textContent = 'Error saving categories: ' + (err.message || err);
+        categoriesError.style.display = 'block';
+      } finally {
+        document.body.classList.remove('loading');
+      }
+    });
+
+    // Fixed costs editor
+    async function rebuildFixedCostsEditor() {
+      fixedCostsEditor.innerHTML = '';
+      const month = Number(setMonth.value);
+      const year = Number(setYear.value);
+      const periodStartDay = currentPeriod.startDay;
+
+      const { data } = await supabase
+        .from('fixed_costs')
+        .select('id, name, amount')
+        .eq('period_start_day', periodStartDay)
+        .eq('month', month)
+        .eq('year', year)
+        .order('name');
+
+      const items = data || [];
+
+      for (const item of items) {
+        const row = document.createElement('div');
+        row.style.display = 'grid';
+        row.style.gridTemplateColumns = '1fr 120px auto';
+        row.style.gap = '8px';
+        row.style.alignItems = 'center';
+
+        const nameInput = document.createElement('input');
+        nameInput.value = item.name;
+        nameInput.dataset.id = item.id;
+        nameInput.dataset.field = 'name';
+
+        const amtInput = document.createElement('input');
+        amtInput.type = 'number';
+        amtInput.min = '0';
+        amtInput.step = '1';
+        amtInput.value = Number(item.amount);
+        amtInput.dataset.id = item.id;
+        amtInput.dataset.field = 'amount';
+
+        const delBtn = document.createElement('button');
+        delBtn.type = 'button';
+        delBtn.className = 'btn secondary';
+        delBtn.textContent = 'Delete';
+        delBtn.addEventListener('click', async () => {
+          try {
+            document.body.classList.add('loading');
+            const { error } = await supabase
+              .from('fixed_costs')
+              .delete()
+              .eq('id', item.id);
+            if (error) throw error;
+            await rebuildFixedCostsEditor();
+            if (month === currentPeriod.month && year === currentPeriod.year) {
+              await loadAll();
+            }
+          } catch (err) {
+            console.error(err);
+            alert('Error deleting fixed cost: ' + (err.message || err));
+          } finally {
+            document.body.classList.remove('loading');
+          }
+        });
+
+        row.appendChild(nameInput);
+        row.appendChild(amtInput);
+        row.appendChild(delBtn);
+        fixedCostsEditor.appendChild(row);
+      }
+    }
+
+    addFixedBtn.addEventListener('click', async () => {
+      const month = Number(setMonth.value);
+      const year = Number(setYear.value);
+      const periodStartDay = currentPeriod.startDay;
+
+      const name = prompt('Fixed cost name:');
+      if (!name) return;
+      const amountStr = prompt('Fixed cost amount ($):', '0');
+      if (amountStr === null) return;
+      const amount = Math.floor(Number(amountStr));
+      if (!Number.isFinite(amount) || amount < 0) {
+        alert('Invalid amount.');
+        return;
+      }
+
+      try {
+        document.body.classList.add('loading');
+        const { error } = await supabase.from('fixed_costs').insert([{
+          period_start_day: periodStartDay,
+          month,
+          year,
+          name,
+          amount
+        }]);
         if (error) throw error;
-
         await rebuildFixedCostsEditor();
-
-        if (selectedMonth === currentPeriod.month && selectedYear === currentPeriod.year) {
+        if (month === currentPeriod.month && year === currentPeriod.year) {
           await loadAll();
         }
-      } catch (error) {
-        console.error(error);
-        alert(`Could not add fixed cost: ${error.message || error}`);
+      } catch (err) {
+        console.error(err);
+        alert('Error adding fixed cost: ' + (err.message || err));
       } finally {
         document.body.classList.remove('loading');
       }
     });
 
     saveFixedBtn.addEventListener('click', async () => {
-      clearError(fixedError);
-
-      const selectedMonth = Number(setMonth.value);
-      const selectedYear = Number(setYear.value);
-      const rows = [...fixedCostsEditor.querySelectorAll('.fixed-editor-row')];
+      fixedError.style.display = 'none';
+      const inputs = fixedCostsEditor.querySelectorAll('input');
+      const updates = [];
+      for (const inp of inputs) {
+        const id = Number(inp.dataset.id);
+        const field = inp.dataset.field;
+        const value = field === 'name' ? inp.value : Math.floor(Number(inp.value));
+        updates.push({ id, field, value });
+      }
 
       try {
         document.body.classList.add('loading');
-
-        for (const row of rows) {
-          const nameInput = row.querySelector('[data-field="name"]');
-          const amountInput = row.querySelector('[data-field="amount"]');
-
-          const name = nameInput.value.trim();
-          const amount = integer(amountInput.value);
-
-          if (!name || !Number.isInteger(amount) || amount < 0) {
-            throw new Error('Each fixed cost needs a name and a valid whole-dollar amount.');
-          }
-
+        for (const u of updates) {
+          const payload = {};
+          payload[u.field] = u.value;
           const { error } = await supabase
             .from('fixed_costs')
-            .update({ name, amount })
-            .eq('id', Number(nameInput.dataset.id));
-
+            .update(payload)
+            .eq('id', u.id);
           if (error) throw error;
         }
-
-        await rebuildFixedCostsEditor();
-
-        if (selectedMonth === currentPeriod.month && selectedYear === currentPeriod.year) {
+        const month = Number(setMonth.value);
+        const year = Number(setYear.value);
+        if (month === currentPeriod.month && year === currentPeriod.year) {
           await loadAll();
         } else {
-          alert('Fixed costs saved for the selected period.');
+          alert('Fixed costs saved for selected period.');
         }
-      } catch (error) {
-        console.error(error);
-        showError(fixedError, `Could not save fixed costs: ${error.message || error}`);
+      } catch (err) {
+        console.error(err);
+        fixedError.textContent = 'Error saving fixed costs: ' + (err.message || err);
+        fixedError.style.display = 'block';
       } finally {
         document.body.classList.remove('loading');
       }
     });
 
-    setMonth.addEventListener('change', async () => {
-      try {
-        const selectedSettings = await ensureSettingsForSelection();
-        setStarting.value = integer(selectedSettings.starting_amount);
-        setGas.value = integer(selectedSettings.gas_amount);
-        setGroceries.value = integer(selectedSettings.groceries_amount);
-        setEatOut.value = integer(selectedSettings.eat_out_amount);
-        setExtra.value =
+    // Initial load
+    loadAll();
+  </script>
+</body>
+</html>
