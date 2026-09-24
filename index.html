@@ -601,7 +601,7 @@
 
       const { data: existing } = await supabase
         .from('fixed_costs')
-        .select('name, amount')
+        .select('id, name, amount, is_paid')
         .eq('period_start_day', period.startDay)
         .eq('month', period.month)
         .eq('year', period.year);
@@ -627,7 +627,7 @@
 
       const { data: finalData } = await supabase
         .from('fixed_costs')
-        .select('name, amount')
+        .select('id, name, amount, is_paid')
         .eq('period_start_day', period.startDay)
         .eq('month', period.month)
         .eq('year', period.year)
@@ -827,7 +827,27 @@ win.appendChild(row);
       }
     }
 
-    async function deleteExpense(id) {
+    async function toggleFixedPaid(id, isPaid) {
+  try {
+    document.body.classList.add('loading');
+
+    const { error } = await supabase
+      .from('fixed_costs')
+      .update({ is_paid: isPaid })
+      .eq('id', id);
+
+    if (error) throw error;
+
+    await loadAll();
+  } catch (err) {
+    console.error(err);
+    alert('Error updating fixed expense: ' + (err.message || err));
+  } finally {
+    document.body.classList.remove('loading');
+  }
+}
+    
+async function deleteExpense(id) {
   const confirmed = window.confirm('Delete this expense?');
   if (!confirmed) return;
 
