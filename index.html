@@ -807,6 +807,28 @@
       }
     }
 
+    async function deleteExpense(id) {
+  const confirmed = window.confirm('Delete this expense?');
+  if (!confirmed) return;
+
+  try {
+    document.body.classList.add('loading');
+
+    const { error } = await supabase
+      .from('expenses')
+      .delete()
+      .eq('id', id);
+
+    if (error) throw error;
+
+    await loadAll();
+  } catch (err) {
+    console.error(err);
+    alert('Error deleting expense: ' + (err.message || err));
+  } finally {
+    document.body.classList.remove('loading');
+  }
+}
     async function loadAll() {
       try {
         document.body.classList.add('loading');
