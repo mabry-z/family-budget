@@ -826,7 +826,32 @@ for (const f of fixedCosts) {
       const totalCatBudget = gas + groceries + eatOut + extra;
       const totalCatSpent = Object.values(spent).reduce((a,b)=>a+b,0);
       const totalCatRemaining = Object.values(remaining).reduce((a,b)=>a+b,0);
+      
+      const cardTotals = {
+        Chase: 0,
+        AMEX: 0,
+        'Star Card': 0
+      };
 
+      Object.values(expensesByCategory)
+        .flat()
+        .forEach((expense) => {
+          if (Object.prototype.hasOwnProperty.call(cardTotals, expense.card)) {
+            const signedAmount =
+              expense.transaction_type === 'refund'
+                ? -Number(expense.amount)
+                : Number(expense.amount);
+
+            cardTotals[expense.card] += signedAmount;
+          }
+        });
+
+      cardSpending.innerHTML = `
+        <div><strong>Chase:</strong> $${cardTotals.Chase.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</div>
+        <div><strong>AMEX:</strong> $${cardTotals.AMEX.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</div>
+        <div><strong>Star Card:</strong> $${cardTotals['Star Card'].toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</div>
+      `;
+      
       budgetSummary.innerHTML = `
         <div><strong>Starting:</strong> $${start.toLocaleString()}</div>
         <div><strong>Fixed costs:</strong> $${totalFixed.toLocaleString()}</div>
