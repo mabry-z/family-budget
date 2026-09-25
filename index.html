@@ -388,6 +388,10 @@
           </select>
         </div>
         <div>
+          <label for="merchant">Merchant</label>
+          <input id="merchant" type="text" maxlength="100" placeholder="e.g. Aldi or Amazon" required />
+        </div>
+        <div>
           <label for="amount">Amount ($)</label>
           <input id="amount" type="number" min="0" step="1" placeholder="e.g. 45" required />
         </div>
@@ -663,7 +667,7 @@
     async function loadExpenses(period) {
       const { data, error } = await supabase
         .from('expenses')
-        .select('id, category, amount, card, created_at')
+        .select('id, category, merchant, amount, card, created_at')
         .eq('period_start_day', period.startDay)
         .eq('month', period.month)
         .eq('year', period.year)
@@ -721,7 +725,8 @@ for (const f of fixedCosts) {
   row.appendChild(label);
   fixedList.appendChild(row);
 }
-}
+
+    }
     function renderBudgetSummary() {
       if (!settings) {
         budgetSummary.textContent = 'Loading settings…';
@@ -825,7 +830,7 @@ for (const f of fixedCosts) {
             const row = document.createElement('div');
             row.className = 'liquid-item';
             const left = document.createElement('div');
-            left.textContent = `$${e.amount}`;
+            left.textContent = `${e.merchant || 'Unknown merchant'} — $${e.amount}`;
             const right = document.createElement('div');
             right.className = 'liquid-meta';
             const date = new Date(e.created_at);
@@ -994,10 +999,16 @@ async function deleteExpense(id) {
       e.preventDefault();
       formError.style.display = 'none';
       const category = document.getElementById('category').value;
+      const merchant = document.getElementById('merchant').value.trim();
       const amountRaw = document.getElementById('amount').value;
       const card = document.getElementById('card').value;
 
       const amount = Math.floor(Number(amountRaw));
+      if (!merchant) {
+        formError.textContent = 'Please enter a merchant.';
+        formError.style.display = 'block';
+        return;
+      }
       if (!Number.isFinite(amount) || amount <= 0) {
         formError.textContent = 'Amount must be a positive whole number.';
         formError.style.display = 'block';
@@ -1011,10 +1022,12 @@ async function deleteExpense(id) {
           month: currentPeriod.month,
           year: currentPeriod.year,
           category,
+          merchant,
           amount,
           card
         }]);
         if (error) throw error;
+        document.getElementById('merchant').value = '';
         document.getElementById('amount').value = '';
         await loadAll();
       } catch (err) {
