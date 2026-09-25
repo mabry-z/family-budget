@@ -1049,19 +1049,6 @@ for (const f of fixedCosts) {
   }
 }
 
-const rightWrap = document.createElement('div');
-rightWrap.style.display = 'flex';
-rightWrap.style.alignItems = 'center';
-rightWrap.style.gap = '6px';
-rightWrap.appendChild(right);
-rightWrap.appendChild(deleteBtn);
-
-row.appendChild(left);
-row.appendChild(rightWrap);
-win.appendChild(row);
-          }
-        }
-
         hover.appendChild(win);
         card.appendChild(label);
         card.appendChild(remainingEl);
