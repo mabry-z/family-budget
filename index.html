@@ -743,12 +743,23 @@
     }
 
     function renderPeriodDisplay() {
-      const label = currentPeriod.startDay === 1 ? '1st–15th' : '16th–End';
-      const monthName = months[currentPeriod.month - 1];
-      const daysInMonth = getDaysInMonth(currentPeriod.month, currentPeriod.year);
-      const endDay = currentPeriod.startDay === 1 ? 15 : daysInMonth;
-      periodDisplay.textContent = `${label} • ${monthName} ${currentPeriod.year} (Current Period)`;
-    }
+  const today = new Date();
+
+  const todayText = today.toLocaleDateString('en-US', {
+    month: 'short',
+    day: 'numeric',
+    year: 'numeric'
+  });
+
+  const monthName = months[currentPeriod.month - 1];
+  const daysInMonth = getDaysInMonth(currentPeriod.month, currentPeriod.year);
+  const endDay = currentPeriod.startDay === 1 ? 15 : daysInMonth;
+
+  periodDisplay.innerHTML = `
+    <div>Hello, today is ${todayText}</div>
+    <div><strong>Pay Period:</strong> ${monthName} ${currentPeriod.startDay}-${endDay}, ${currentPeriod.year}</div>
+  `;
+}
 
     function renderFixedList() {
      if (!fixedCosts.length) {
