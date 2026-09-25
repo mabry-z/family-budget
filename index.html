@@ -1069,8 +1069,7 @@ win.appendChild(row);
         card.appendChild(hover);
         categoriesGrid.appendChild(card);
       }
-    }
-
+    
     async function toggleFixedPaid(id, isPaid) {
   try {
     document.body.classList.add('loading');
@@ -1300,31 +1299,42 @@ async function deleteExpense(id) {
       }
 // If we're editing an existing expense, update it instead of inserting
 if (editingExpenseId !== null) {
-  const { error } = await supabase
-    .from('expenses')
-    .update({
-      category,
-      merchant,
-      transaction_type: transactionType,
-      amount,
-      card
-    })
-    .eq('id', editingExpenseId);
+  try {
+    document.body.classList.add('loading');
 
-  if (error) throw error;
+    const { error } = await supabase
+      .from('expenses')
+      .update({
+        category,
+        merchant,
+        transaction_type: transactionType,
+        amount,
+        card
+      })
+      .eq('id', editingExpenseId);
 
-  // Reset edit state
-  editingExpenseId = null;
-  const submitBtn = expenseForm.querySelector('button[type="submit"]');
-  if (submitBtn) {
-    submitBtn.textContent = 'Add';
-    delete submitBtn.dataset.editing;
+    if (error) throw error;
+
+    editingExpenseId = null;
+
+    const submitBtn = expenseForm.querySelector('button[type="submit"]');
+    if (submitBtn) {
+      submitBtn.textContent = 'Add';
+      delete submitBtn.dataset.editing;
+    }
+
+    document.getElementById('merchant').value = '';
+    document.getElementById('amount').value = '';
+
+    await loadAll();
+  } catch (err) {
+    console.error(err);
+    formError.textContent = 'Error updating expense: ' + (err.message || err);
+    formError.style.display = 'block';
+  } finally {
+    document.body.classList.remove('loading');
   }
 
-  document.getElementById('merchant').value = '';
-  document.getElementById('amount').value = '';
-
-  await loadAll();
   return;
 }
       try {
