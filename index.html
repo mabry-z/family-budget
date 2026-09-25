@@ -402,12 +402,26 @@
 
   <div class="container">
     <header>
-      <div class="period-display" id="periodDisplay">Loading period…</div>
-      <div style="display:flex; gap:10px;">
-        <button class="btn secondary" id="togglePeriodBtn">Switch Period</button>
-        <button class="btn" id="settingsBtn">Settings</button>
-      </div>
-    </header>
+  <div class="period-display" id="periodDisplay">Loading period…</div>
+
+  <div style="display:flex; gap:10px; flex-wrap:wrap; justify-content:flex-end;">
+    <button type="button" class="btn secondary" id="previousPeriodBtn">
+      ← Previous
+    </button>
+    <button type="button" class="btn secondary" id="currentPeriodBtn">
+      Current Period
+    </button>
+    <button type="button" class="btn secondary" id="nextPeriodBtn">
+      Next →
+    </button>
+    <button type="button" class="btn secondary" id="togglePeriodBtn">
+      Switch Period
+    </button>
+    <button type="button" class="btn" id="settingsBtn">
+      Settings
+    </button>
+  </div>
+</header>
 
     <section class="card" style="margin-bottom:16px;">
       <div class="section-title">Add Expense</div>
@@ -578,6 +592,9 @@
     // DOM
     const periodDisplay = document.getElementById('periodDisplay');
     const togglePeriodBtn = document.getElementById('togglePeriodBtn');
+    const previousPeriodBtn = document.getElementById('previousPeriodBtn');
+    const currentPeriodBtn = document.getElementById('currentPeriodBtn');
+    const nextPeriodBtn = document.getElementById('nextPeriodBtn');
     const settingsBtn = document.getElementById('settingsBtn');
     const expenseForm = document.getElementById('expenseForm');
     const formError = document.getElementById('formError');
@@ -1106,10 +1123,68 @@ async function deleteExpense(id) {
       }
     })();
 
-    // Toggle period
+        function movePeriod(direction) {
+      if (direction === 'previous') {
+        if (currentPeriod.startDay === 16) {
+          currentPeriod.startDay = 1;
+        } else {
+          currentPeriod.startDay = 16;
+
+          if (currentPeriod.month === 1) {
+            currentPeriod.month = 12;
+            currentPeriod.year -= 1;
+          } else {
+            currentPeriod.month -= 1;
+          }
+        }
+      }
+
+      if (direction === 'next') {
+        if (currentPeriod.startDay === 1) {
+          currentPeriod.startDay = 16;
+        } else {
+          currentPeriod.startDay = 1;
+
+          if (currentPeriod.month === 12) {
+            currentPeriod.month = 1;
+            currentPeriod.year += 1;
+          } else {
+            currentPeriod.month += 1;
+          }
+        }
+      }
+
+      loadAll();
+    }
+
+    function setToActualCurrentPeriod() {
+      const today = new Date();
+      const day = today.getDate();
+
+      currentPeriod = {
+        startDay: day <= 15 ? 1 : 16,
+        month: today.getMonth() + 1,
+        year: today.getFullYear()
+      };
+
+      loadAll();
+    }
+
     togglePeriodBtn.addEventListener('click', () => {
       currentPeriod.startDay = currentPeriod.startDay === 1 ? 16 : 1;
       loadAll();
+    });
+
+    previousPeriodBtn.addEventListener('click', () => {
+      movePeriod('previous');
+    });
+
+    nextPeriodBtn.addEventListener('click', () => {
+      movePeriod('next');
+    });
+
+    currentPeriodBtn.addEventListener('click', () => {
+      setToActualCurrentPeriod();
     });
 
     // Open/close settings
