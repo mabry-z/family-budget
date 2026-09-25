@@ -253,12 +253,13 @@
     }
 
     .fixed-list {
-      display: grid;
-      grid-template-columns: 1fr auto;
-      gap: 6px 12px;
-      font-size: 0.9rem;
-      color: var(--blue-800);
-    }
+  display: flex;
+  flex-direction: column;
+  width: 100%;
+  gap: 0;
+  font-size: 0.9rem;
+  color: var(--blue-800);
+}
     .fixed-name { font-weight: 600; }
     .fixed-amt { font-variant-numeric: tabular-nums; }
 .fixed-row {
