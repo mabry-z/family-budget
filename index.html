@@ -604,7 +604,7 @@
     const saveFixedBtn = document.getElementById('saveFixedBtn');
     const fixedError = document.getElementById('fixedError');
     function updateCalculatedExtra() {
-      if (!settings) return;
+      if (!settings && !setStarting.value) return;
 
       const gas = Number(setGas.value) || 0;
       const groceries = Number(setGroceries.value) || 0;
@@ -616,7 +616,7 @@
       );
 
       const extra =
-        Number(settings.starting_amount) -
+        (Number(setStarting.value) || 0) -
         totalFixed -
         gas -
         groceries -
@@ -628,6 +628,7 @@
     setGas.addEventListener('input', updateCalculatedExtra);
     setGroceries.addEventListener('input', updateCalculatedExtra);
     setEatOut.addEventListener('input', updateCalculatedExtra);
+    setStarting.addEventListener('input', updateCalculatedExtra);
     
     // Helpers
     const months = [
