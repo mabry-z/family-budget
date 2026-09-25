@@ -134,11 +134,7 @@
     .grid.two { grid-template-columns: repeat(2, minmax(0, 1fr)); }
     .grid.three { grid-template-columns: repeat(3, minmax(0, 1fr)); }
     .grid.four { grid-template-columns: repeat(4, minmax(0, 1fr)); }
-    
-    section:has(.grid.four) {
-      margin: 16px 0;
-    }
-
+        
     @media (max-width: 900px) {
       .grid.two, .grid.three, .grid.four { grid-template-columns: 1fr; }
     }
@@ -371,6 +367,10 @@
     }
     .close-btn:hover { background: rgba(15,43,70,0.06); }
 
+    section {
+  margin-bottom: 16px;
+}
+
     .settings-section {
       margin-top: 16px;
       padding-top: 16px;
@@ -427,7 +427,7 @@
   </div>
 </header>
 
-    <section class="card" style="margin-bottom:16px;">
+    <section class="card">
       <div class="section-title">Add Expense</div>
       <form id="expenseForm" class="form-row">
         <div>
