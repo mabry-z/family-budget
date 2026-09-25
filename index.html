@@ -262,10 +262,44 @@
     .fixed-name { font-weight: 600; }
     .fixed-amt { font-variant-numeric: tabular-nums; }
 .fixed-row {
-  display: flex;
+  display: grid;
+  grid-template-columns: 32px minmax(0, 1fr) auto;
   align-items: center;
-  gap: 8px;
-  padding: 6px 0;
+  gap: 12px;
+  min-height: 42px;
+  padding: 8px 0;
+  border-bottom: 1px solid rgba(15, 43, 70, 0.08);
+}
+
+.fixed-row:last-child {
+  border-bottom: none;
+}
+
+.fixed-label {
+  display: contents;
+}
+
+.fixed-label input[type="checkbox"] {
+  width: 18px;
+  height: 18px;
+  margin: 0;
+  accent-color: var(--blue-500);
+  cursor: pointer;
+}
+
+.fixed-name {
+  min-width: 0;
+  overflow-wrap: anywhere;
+  font-weight: 600;
+  color: var(--blue-800);
+}
+
+.fixed-amt {
+  min-width: 72px;
+  text-align: right;
+  font-weight: 700;
+  font-variant-numeric: tabular-nums;
+  color: var(--blue-800);
 }
 
 .fixed-label {
