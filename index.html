@@ -134,6 +134,10 @@
     .grid.two { grid-template-columns: repeat(2, minmax(0, 1fr)); }
     .grid.three { grid-template-columns: repeat(3, minmax(0, 1fr)); }
     .grid.four { grid-template-columns: repeat(4, minmax(0, 1fr)); }
+    
+    section:has(.grid.four) {
+      margin-bottom: 16px;
+    }
 
     @media (max-width: 900px) {
       .grid.two, .grid.three, .grid.four { grid-template-columns: 1fr; }
@@ -474,7 +478,7 @@
       </div>
     </section>
 
-    <section class="grid three" style="margin-bottom:16px;">
+    <section class="grid three">
   <div class="card">
     <div class="section-title">Fixed Expenses (This Period)</div>
     <div id="fixedList" class="fixed-list">Loading…</div>
