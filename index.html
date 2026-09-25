@@ -424,6 +424,14 @@
           <label for="merchant">Merchant</label>
           <input id="merchant" type="text" maxlength="100" placeholder="e.g. Aldi or Amazon" required />
         </div>
+               <div>
+          <label for="transactionType">Type</label>
+          <select id="transactionType" required>
+            <option value="expense" selected>Purchase</option>
+            <option value="refund">Refund</option>
+          </select>
+        </div>
+
         <div>
           <label for="amount">Amount ($)</label>
           <input id="amount" type="number" min="0" step="1" placeholder="e.g. 45" required />
