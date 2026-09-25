@@ -708,7 +708,7 @@
     async function loadExpenses(period) {
       const { data, error } = await supabase
         .from('expenses')
-        .select('id, category, merchant, amount, card, created_at')
+        .select('id, category, merchant, amount, card, transaction_type, created_at')
         .eq('period_start_day', period.startDay)
         .eq('month', period.month)
         .eq('year', period.year)
@@ -1041,6 +1041,7 @@ async function deleteExpense(id) {
       formError.style.display = 'none';
       const category = document.getElementById('category').value;
       const merchant = document.getElementById('merchant').value.trim();
+      const transactionType = document.getElementById('transactionType').value;
       const amountRaw = document.getElementById('amount').value;
       const card = document.getElementById('card').value;
 
@@ -1066,6 +1067,7 @@ async function deleteExpense(id) {
           merchant,
           amount,
           card
+          transaction_type: transactionType
         }]);
         if (error) throw error;
         document.getElementById('merchant').value = '';
