@@ -781,11 +781,23 @@ for (const f of fixedCosts) {
       const extra = Number(settings.extra_amount);
 
       const spent = {
-        Gas: expensesByCategory.Gas.reduce((s, e) => s + e.amount, 0),
-        Groceries: expensesByCategory.Groceries.reduce((s, e) => s + e.amount, 0),
-        'Eat Out': expensesByCategory['Eat Out'].reduce((s, e) => s + e.amount, 0),
-        Extra: expensesByCategory.Extra.reduce((s, e) => s + e.amount, 0),
-      };
+  Gas: expensesByCategory.Gas.reduce(
+    (s, e) => s + (e.transaction_type === 'refund' ? -Number(e.amount) : Number(e.amount)),
+    0
+  ),
+  Groceries: expensesByCategory.Groceries.reduce(
+    (s, e) => s + (e.transaction_type === 'refund' ? -Number(e.amount) : Number(e.amount)),
+    0
+  ),
+  'Eat Out': expensesByCategory['Eat Out'].reduce(
+    (s, e) => s + (e.transaction_type === 'refund' ? -Number(e.amount) : Number(e.amount)),
+    0
+  ),
+  Extra: expensesByCategory.Extra.reduce(
+    (s, e) => s + (e.transaction_type === 'refund' ? -Number(e.amount) : Number(e.amount)),
+    0
+  ),
+};
 
       const remaining = {
         Gas: Math.max(0, gas - spent.Gas),
@@ -817,11 +829,23 @@ for (const f of fixedCosts) {
       const extra = Number(settings.extra_amount);
 
       const spent = {
-        Gas: expensesByCategory.Gas.reduce((s, e) => s + e.amount, 0),
-        Groceries: expensesByCategory.Groceries.reduce((s, e) => s + e.amount, 0),
-        'Eat Out': expensesByCategory['Eat Out'].reduce((s, e) => s + e.amount, 0),
-        Extra: expensesByCategory.Extra.reduce((s, e) => s + e.amount, 0),
-      };
+  Gas: expensesByCategory.Gas.reduce(
+    (s, e) => s + (e.transaction_type === 'refund' ? -Number(e.amount) : Number(e.amount)),
+    0
+  ),
+  Groceries: expensesByCategory.Groceries.reduce(
+    (s, e) => s + (e.transaction_type === 'refund' ? -Number(e.amount) : Number(e.amount)),
+    0
+  ),
+  'Eat Out': expensesByCategory['Eat Out'].reduce(
+    (s, e) => s + (e.transaction_type === 'refund' ? -Number(e.amount) : Number(e.amount)),
+    0
+  ),
+  Extra: expensesByCategory.Extra.reduce(
+    (s, e) => s + (e.transaction_type === 'refund' ? -Number(e.amount) : Number(e.amount)),
+    0
+  ),
+};
 
       const remaining = {
         Gas: Math.max(0, gas - spent.Gas),
@@ -871,7 +895,8 @@ for (const f of fixedCosts) {
             const row = document.createElement('div');
             row.className = 'liquid-item';
             const left = document.createElement('div');
-            left.textContent = `${e.merchant || 'Unknown merchant'} — $${e.amount}`;
+            const sign = e.transaction_type === 'refund' ? '+' : '-';
+left.textContent = `${e.merchant || 'Unknown merchant'} — ${sign}$${Number(e.amount).toLocaleString()}`;
             const right = document.createElement('div');
             right.className = 'liquid-meta';
             const date = new Date(e.created_at);
