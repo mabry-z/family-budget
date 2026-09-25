@@ -536,7 +536,7 @@
           </div>
           <div>
             <label for="setExtra">Extra ($)</label>
-            <input id="setExtra" type="number" min="0" step="1" />
+            <input id="setExtra" type="number" step="0.01" readonly />
           </div>
           <div style="grid-column: 1 / -1;">
             <button class="btn" id="saveCategoriesBtn">Save Categories</button>
@@ -603,7 +603,32 @@
     const addFixedBtn = document.getElementById('addFixedBtn');
     const saveFixedBtn = document.getElementById('saveFixedBtn');
     const fixedError = document.getElementById('fixedError');
+    function updateCalculatedExtra() {
+      if (!settings) return;
 
+      const gas = Number(setGas.value) || 0;
+      const groceries = Number(setGroceries.value) || 0;
+      const eatOut = Number(setEatOut.value) || 0;
+
+      const totalFixed = fixedCosts.reduce(
+        (sum, fixedCost) => sum + Number(fixedCost.amount),
+        0
+      );
+
+      const extra =
+        Number(settings.starting_amount) -
+        totalFixed -
+        gas -
+        groceries -
+        eatOut;
+
+      setExtra.value = extra.toFixed(2);
+    }
+
+    setGas.addEventListener('input', updateCalculatedExtra);
+    setGroceries.addEventListener('input', updateCalculatedExtra);
+    setEatOut.addEventListener('input', updateCalculatedExtra);
+    
     // Helpers
     const months = [
       'January','February','March','April','May','June',
@@ -1095,10 +1120,10 @@ async function deleteExpense(id) {
       setGas.value = Number(settings.gas_amount);
       setGroceries.value = Number(settings.groceries_amount);
       setEatOut.value = Number(settings.eat_out_amount);
-      setExtra.value = Number(settings.extra_amount);
-
+      
       // Build fixed costs editor
       await rebuildFixedCostsEditor();
+      updateCalculatedExtra();
 
       settingsModal.style.display = 'flex';
     });
@@ -1234,10 +1259,17 @@ async function deleteExpense(id) {
       categoriesError.style.display = 'none';
       const month = Number(setMonth.value);
       const year = Number(setYear.value);
-      const gas = Math.floor(Number(setGas.value));
-      const groceries = Math.floor(Number(setGroceries.value));
-      const eatOut = Math.floor(Number(setEatOut.value));
-      const extra = Math.floor(Number(setExtra.value));
+            const gas = Number(setGas.value);
+      const groceries = Number(setGroceries.value);
+      const eatOut = Number(setEatOut.value);
+
+            const totalFixed = fixedCosts.reduce(
+        (sum, fixedCost) => sum + Number(fixedCost.amount),
+        0
+      );
+
+      const extra = Number(settings.starting_amount) - totalFixed - gas - groceries - eatOut;
+      setExtra.value = extra.toFixed(2);
 
       if ([gas, groceries, eatOut, extra].some(v => !Number.isFinite(v) || v < 0)) {
         categoriesError.textContent = 'Invalid category amounts.';
@@ -1268,24 +1300,10 @@ async function deleteExpense(id) {
             })
             .eq('id', existing.id);
           if (error) throw error;
-        } else {
-          // Create new row with default starting if not exists
-          const totalFixed = periodStartDay === 1
-            ? (400 + 1000 + 20 + 38 + 12 + 90)
-            : (400 + 1000 + 35 + 33 + 30 + 2);
-          const starting = totalFixed + gas + groceries + eatOut + extra;
-
-          const { error } = await supabase.from('budget_settings').insert([{
-            period_start_day: periodStartDay,
-            month,
-            year,
-            starting_amount: starting,
-            gas_amount: gas,
-            groceries_amount: groceries,
-            eat_out_amount: eatOut,
-            extra_amount: extra
-          }]);
-          if (error) throw error;
+                } else {
+          throw new Error(
+            'Set the Starting Budget for this pay period before saving category amounts.'
+          );
         }
 
         if (month === currentPeriod.month && year === currentPeriod.year) {
