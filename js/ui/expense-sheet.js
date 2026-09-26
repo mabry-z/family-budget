@@ -7,6 +7,7 @@ const form = document.getElementById('expenseForm');
 const titleEl = document.getElementById('expenseTitle');
 const categoryChips = document.getElementById('categoryChips');
 const merchantInput = document.getElementById('merchantInput');
+const suggestEl = document.getElementById('merchantSuggest');
 const typeChips = document.getElementById('typeChips');
 const amountInput = document.getElementById('amountInput');
 const cardChips = document.getElementById('cardChips');
@@ -24,11 +25,28 @@ function selectByValue(group, value) {
   selectChip(group, chip ?? group.querySelector('.chip'));
 }
 
+// Stores entered before, matching what's typed; tap one to fill it in.
+function renderSuggestions() {
+  const names = ctx.suggestMerchants(merchantInput.value, Number(selectedValue(categoryChips)));
+  suggestEl.innerHTML = names.map(name =>
+    `<button type="button" class="chip" data-merchant="${esc(name)}">${esc(name)}</button>`).join('');
+  suggestEl.hidden = !names.length;
+}
+
 // ctx: { getCategoryChoices() → [{id, name}], categoryIdOf(expense),
+//        suggestMerchants(typed, categoryId) → [name],
 //        onSave({id?, category_id, merchant, amount, card, transaction_type}), onDelete(id) }
 export function initExpenseSheet(context) {
   ctx = context;
   wireSheet(backdrop);
+
+  merchantInput.addEventListener('input', renderSuggestions);
+  suggestEl.addEventListener('click', e => {
+    const chip = e.target.closest('[data-merchant]');
+    if (!chip) return;
+    merchantInput.value = chip.dataset.merchant;
+    renderSuggestions();
+  });
 
   cardChips.innerHTML = CARDS.map(c =>
     `<button type="button" class="chip card-chip" data-value="${esc(c.value)}">`
@@ -42,6 +60,8 @@ export function initExpenseSheet(context) {
       if (chip) selectChip(group, chip);
     });
   }
+  // After the selection above: the category changes which stores come first.
+  categoryChips.addEventListener('click', () => renderSuggestions());
 
   form.addEventListener('submit', async e => {
     e.preventDefault();
@@ -121,5 +141,6 @@ export function openExpenseSheet(expense = null) {
   deleteBtn.textContent = 'Delete expense';
   delete deleteBtn.dataset.armed;
   showFormError(errorEl, '');
+  renderSuggestions();
   openSheet(backdrop);
 }

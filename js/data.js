@@ -82,21 +82,49 @@ export function loadExpenses(period) {
   ).order('created_at'));
 }
 
-// For Trends. Pages through results because Supabase caps each response at 1000 rows.
-export async function loadExpensesSince(year) {
+// Pages through results because Supabase caps each response at 1000 rows.
+async function selectAll(table, columns, filter = q => q) {
   const pageSize = 1000;
   const rows = [];
   for (let from = 0; ; from += pageSize) {
-    const page = await run(
-      supabase.from('expenses')
-        .select('id, year, month, category, category_id, amount, transaction_type')
-        .gte('year', year)
-        .order('id')
-        .range(from, from + pageSize - 1)
-    );
+    const page = await run(filter(supabase.from(table).select(columns)).order('id').range(from, from + pageSize - 1));
     rows.push(...page);
     if (page.length < pageSize) return rows;
   }
+}
+
+// ---------- Insights ----------
+
+export function loadExpensesSince(year) {
+  return selectAll('expenses',
+    'id, year, month, period_start_day, category, category_id, merchant, amount, transaction_type, created_at',
+    q => q.gte('year', year));
+}
+
+export function loadFixedCostsSince(year) {
+  return selectAll('fixed_costs', 'id, year, month, period_start_day, amount', q => q.gte('year', year));
+}
+
+export async function loadPeriodCategoriesFor(periodIds) {
+  if (!periodIds.length) return [];
+  return run(supabase.from('period_categories')
+    .select('period_id, category_id, amount, emptied')
+    .in('period_id', periodIds));
+}
+
+// Extra carried into every period (only periods from carry_start on have a row).
+export function loadAllCarryIn() {
+  return run(supabase.from('period_extra_carry').select('period_id, carry_in'));
+}
+
+export async function loadCarryStart() {
+  const rows = await run(supabase.from('budget_defaults').select('carry_start'));
+  return rows.length ? rows[0].carry_start : null;
+}
+
+// Every store name ever entered, for suggestions in the expense sheet.
+export function loadMerchantHistory() {
+  return selectAll('expenses', 'id, merchant, category, category_id', q => q.not('merchant', 'is', null));
 }
 
 export function addExpense(row) {

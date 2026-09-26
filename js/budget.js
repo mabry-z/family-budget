@@ -83,6 +83,16 @@ export function barFor(spent, budget, isExtra) {
   return { pct: Math.round(Math.min(Math.max(ratio, 0), 1) * 100), cls };
 }
 
+// A period's category snapshot as buildBudget wants it: each non-Extra
+// category with that period's amount, in display order.
+// periodCategories: period_categories rows; categoriesById: Map of categories.
+export function snapshotCategories(periodCategories, categoriesById) {
+  return periodCategories
+    .filter(pc => categoriesById.has(pc.category_id) && !categoriesById.get(pc.category_id).is_remainder)
+    .map(pc => ({ ...categoriesById.get(pc.category_id), amount: pc.amount, emptied: pc.emptied }))
+    .sort((a, b) => (a.sort_order - b.sort_order) || (a.id - b.id));
+}
+
 // One entry per card on the Overview, Extra last. Expenses whose category
 // isn't part of this period land in Extra so nothing goes missing.
 //
@@ -129,23 +139,67 @@ export function cardTotals(expenses, cards) {
   return [...totals].map(([card, total]) => ({ card, total }));
 }
 
-// ---------- Trends ----------
+// ---------- Insights ----------
+// Everything is counted by pay period, never calendar month, and only real
+// spending counts (never money moved to Extra or carried over).
 
-// Calendar months ending with today's month. range: '3' | '6' | '9' | 'ytd'.
-export function trendMonths(range, today) {
-  const count = range === 'ytd' ? today.getMonth() + 1 : Number(range);
-  const months = [];
-  for (let i = count - 1; i >= 0; i--) {
-    const d = new Date(today.getFullYear(), today.getMonth() - i, 1);
-    months.push({ year: d.getFullYear(), month: d.getMonth() + 1, label: MONTHS_SHORT[d.getMonth()] });
-  }
-  return months;
+const RANGE_PERIODS = { 3: 6, 6: 12 }; // two pay periods a month
+
+// Existing pay_periods rows in the range, oldest first, ending with the
+// current period. range: '3' | '6' (months) | 'ytd'.
+export function periodsInRange(rows, range, currentStartISO) {
+  const upToNow = rows.filter(r => r.start_date <= currentStartISO);
+  if (range === 'ytd') return upToNow.filter(r => r.start_date.slice(0, 4) === currentStartISO.slice(0, 4));
+  return upToNow.slice(-RANGE_PERIODS[range]);
 }
 
-// Net spending per month (both pay periods of a month combined).
-export function monthlyTotals(expenses, months, categoryId, categoryIdOf) {
-  return months.map(m => sum(
-    expenses.filter(e => e.year === m.year && e.month === m.month && categoryIdOf(e) === categoryId),
-    signedAmount
-  ));
+// Groups rows by the period they belong to. key: (year, month, startDay).
+export const periodKey = (year, month, startDay) => `${year}-${month}-${startDay}`;
+
+export function groupByPeriod(list, keyOf) {
+  const groups = new Map();
+  for (const item of list) {
+    const key = keyOf(item);
+    if (!groups.has(key)) groups.set(key, []);
+    groups.get(key).push(item);
+  }
+  return groups;
+}
+
+// What was left in a period's Extra, not counting what it carried in.
+export function extraLeftover(budget) {
+  const extra = budget.cards.find(c => c.isExtra);
+  return extra.budget - budget.carryIn - extra.spent;
+}
+
+export const NEAR_BUDGET = 10; // within this many dollars (and not over) = "on budget"
+
+// 'under' | 'near' | 'over', judged against the category's original amount
+// (a category moved to Extra still counts as under if it spent less).
+export function budgetStatus(spent, amount) {
+  if (spent > amount) return 'over';
+  if (spent <= 0 || spent < amount - NEAR_BUDGET) return 'under';
+  return 'near';
+}
+
+// One plain sentence about the finished periods in the scorecard.
+// rows: [{ name, cells: [{ status, spent, amount, current } | null] }]
+export function overBudgetPattern(rows) {
+  let worst = null;
+  let anyFinished = false;
+  for (const row of rows) {
+    const done = row.cells.filter(c => c && !c.current);
+    if (done.length) anyFinished = true;
+    const overs = done.filter(c => c.status === 'over');
+    if (!overs.length) continue;
+    const average = Math.round(sum(overs, c => c.spent - c.amount) / overs.length);
+    const share = overs.length / done.length;
+    if (!worst || share > worst.share || (share === worst.share && average > worst.average)) {
+      worst = { name: row.name, overs: overs.length, done: done.length, share, average };
+    }
+  }
+  if (!anyFinished) return '';
+  if (!worst) return 'Every category stayed on budget.';
+  const periods = worst.done === 1 ? 'period' : 'periods';
+  return `${worst.name} went over in ${worst.overs} of ${worst.done} ${periods}, by ${money(worst.average)} on average.`;
 }

@@ -2,14 +2,15 @@ import * as db from './data.js';
 import * as auth from './auth.js';
 import { CARDS } from './config.js';
 import {
-  periodForDate, shiftPeriod, samePeriod, periodStartISO, buildBudget, cardTotals,
+  periodForDate, shiftPeriod, samePeriod, periodStartISO, buildBudget, cardTotals, snapshotCategories,
 } from './budget.js';
+import { merchantIndex, suggestMerchants } from './merchants.js';
 import { today, toISO, fromISO, addDays, rangeLabel, expectedPayday } from './paydays.js';
 import { showToast, errorMessage } from './ui/dom.js';
 import { initOverview, renderOverview } from './ui/overview.js';
 import { initBills, renderBills } from './ui/bills.js';
 import { renderSummary } from './ui/summary.js';
-import { initTrends, renderTrends, invalidateTrends } from './ui/trends.js';
+import { initInsights, renderInsights, invalidateInsights } from './ui/insights.js';
 import { initExpenseSheet, openExpenseSheet } from './ui/expense-sheet.js';
 import { initSettingsSheet, openSettingsSheet } from './ui/settings-sheet.js';
 import { initPaydaySheet, openPaydaySheet } from './ui/payday-sheet.js';
@@ -32,6 +33,7 @@ const state = {
   fixedCosts: [],
   expenses: [],
   budget: null,
+  merchants: new Map(),  // every store entered, for suggestions (see merchants.js)
   activeScreen: 'overview',
 };
 
@@ -79,7 +81,7 @@ async function loadAll({ quiet = false } = {}) {
   const period = { ...state.period };
   renderPeriodLabel();
   if (!quiet) document.body.classList.add('is-loading');
-  invalidateTrends();
+  invalidateInsights();
 
   try {
     const periodRow = await db.ensurePeriod(period);
@@ -93,16 +95,12 @@ async function loadAll({ quiet = false } = {}) {
     ]);
     if (token !== loadToken) return; // the user moved to another period meanwhile
 
-    const byId = new Map(categories.map(c => [c.id, c]));
     state.payPeriods = payPeriods;
     state.periodRow = periodRow;
     state.carryIn = carryIn;
     state.categories = categories;
     state.extraCategory = categories.find(c => c.is_remainder);
-    state.periodCategories = periodCats
-      .filter(pc => byId.has(pc.category_id) && !byId.get(pc.category_id).is_remainder)
-      .map(pc => ({ ...byId.get(pc.category_id), amount: pc.amount, emptied: pc.emptied }))
-      .sort((a, b) => (a.sort_order - b.sort_order) || (a.id - b.id));
+    state.periodCategories = snapshotCategories(periodCats, new Map(categories.map(c => [c.id, c])));
     state.fixedCosts = fixedCosts;
     state.expenses = expenses;
     lastLoadedAt = Date.now();
@@ -135,12 +133,16 @@ function render() {
   renderOverview(state.budget, state.expenses);
   renderBills(state.fixedCosts);
   renderSummary(state.budget, cardTotals(state.expenses, CARDS));
-  if (state.activeScreen === 'trends') showTrends();
+  if (state.activeScreen === 'insights') renderInsights();
 }
 
-function showTrends() {
-  const charted = state.categories.filter(c => c.is_active && !c.is_remainder);
-  renderTrends(charted, categoryIdOf);
+// Store names for suggestions; refreshed after saves and on return.
+async function loadMerchants() {
+  try {
+    state.merchants = merchantIndex(await db.loadMerchantHistory(), categoryIdOf);
+  } catch {
+    // Suggestions are a nicety; keep the list we had.
+  }
 }
 
 // ---------- Payday ----------
@@ -197,6 +199,7 @@ async function refreshOnReturn() {
   }
   if (wasCurrent) state.period = currentPeriod();
   await loadAll({ quiet: true });
+  loadMerchants();
   askAboutPayday();
 }
 
@@ -220,14 +223,21 @@ periodLabelEl.addEventListener('keydown', e => {
   if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); goToPeriod(currentPeriod()); }
 });
 
+// The header shows the tab's name. Insights spans many periods, so it has no period bar.
+const SCREEN_TITLES = { overview: 'Cadence', bills: 'Bills', insights: 'Insights', summary: 'Summary' };
+const headerEl = document.getElementById('appHeader');
+const screenTitleEl = document.getElementById('screenTitle');
+
 document.querySelectorAll('.tab').forEach(tab => {
   tab.addEventListener('click', () => {
     state.activeScreen = tab.dataset.screen;
+    screenTitleEl.textContent = SCREEN_TITLES[state.activeScreen];
+    headerEl.classList.toggle('no-period', state.activeScreen === 'insights');
     document.querySelectorAll('.tab').forEach(t => t.classList.toggle('active', t === tab));
     document.querySelectorAll('.screen').forEach(s => {
       s.classList.toggle('active', s.id === `screen-${state.activeScreen}`);
     });
-    if (state.activeScreen === 'trends' && state.budget) showTrends();
+    if (state.activeScreen === 'insights' && state.budget) renderInsights();
   });
 });
 
@@ -261,11 +271,21 @@ initBills({
   },
 });
 
-initTrends();
+initInsights({
+  get: () => ({
+    payPeriods: state.payPeriods,
+    categories: state.categories,
+    extraCategory: state.extraCategory,
+    currentStartISO: periodStartISO(currentPeriod()),
+    categoryIdOf,
+    periodLabel: row => periodRangeLabel(rowToPeriod(row)),
+  }),
+});
 
 initExpenseSheet({
   getCategoryChoices: () => state.budget.cards.map(c => ({ id: c.id, name: c.name })),
   categoryIdOf: expense => state.budget.bucketOf(expense),
+  suggestMerchants: (typed, categoryId) => suggestMerchants(state.merchants, typed, categoryId),
   onSave: async ({ id, category_id, ...fields }) => {
     const category = state.categories.find(c => c.id === category_id);
     // Keep the text column filled in too, so the old app on main still reads these rows.
@@ -277,10 +297,12 @@ initExpenseSheet({
       await db.addExpense({ ...row, year: p.year, month: p.month, period_start_day: p.startDay });
     }
     await loadAll();
+    loadMerchants();
   },
   onDelete: async id => {
     await db.deleteExpense(id);
     await loadAll();
+    loadMerchants();
   },
 });
 
@@ -381,6 +403,7 @@ async function enterApp(session) {
   }
   state.period = currentPeriod();
   await loadAll();
+  loadMerchants();
   askAboutPayday();
 }
 

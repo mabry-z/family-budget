@@ -12,14 +12,17 @@ Static HTML/CSS/JS (ES modules, no build step) served by GitHub Pages from
 - `js/supabase.js` — client. `js/data.js` — every Supabase read/write/RPC.
 - `js/budget.js` — pure budget math and period helpers (no DOM, no Supabase).
 - `js/paydays.js` — pure date helpers, federal holidays, payday rule.
+- `js/merchants.js` — pure store-name grouping (Insights) and suggestions
+  (expense sheet).
 - `js/auth.js` — Supabase Auth: session, sign in/out, change password.
 - `js/app.js` — sign-in gate, state, loading, period navigation, tabs, wiring.
-- `js/ui/*.js` — one module per screen/sheet (overview, bills, trends,
+- `js/ui/*.js` — one module per screen/sheet (overview, bills, insights,
   summary, expense-sheet, settings-sheet, payday-sheet, sign-in, household)
   plus `dom.js` helpers.
 - `supabase/migrations/NNN_*.sql` — run by hand, in order (see Workflow).
 - `dev/serve.ps1` — local static server (http://localhost:8000).
 - `docs/households-plan.md` — plan and rollout for accounts + households.
+- `docs/insights-plan.md` — the Insights tab (replaced Trends) and its rules.
 
 ## Data model (Supabase, schema `public`)
 
@@ -73,7 +76,13 @@ Static HTML/CSS/JS (ES modules, no build step) served by GitHub Pages from
   the expected payday; "Not yet" snoozes until the next day.
 - Expenses stay in the period they were added to; changing a start date
   doesn't move them.
-- Trends counts expenses only (never moved or carried money).
+- Insights counts by **pay period**, never calendar month, and counts
+  expenses only (never moved or carried money). Its per-period numbers come
+  from `buildBudget`, so they always match the Overview. The scorecard
+  judges each category against its **original** amount (emptied ones too);
+  "within $10" and not over = amber.
+- Header: C monogram + tab name ("Cadence" on Overview) in the wordmark
+  font; the period bar is hidden on Insights.
 - Cards: Chase, AMEX, Star Card (label "Star"), USAA, Other. Adding one means
   updating `js/config.js` and the `expenses_card_check` constraint.
 

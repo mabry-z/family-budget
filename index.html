@@ -36,10 +36,10 @@
   </div>
 </div>
 
-<header>
+<header id="appHeader">
   <div class="title-row">
     <span></span>
-    <div class="brand"><div class="brand-mark">C</div><div class="wordmark">Cadence</div></div>
+    <div class="brand"><div class="brand-mark">C</div><div class="wordmark" id="screenTitle">Cadence</div></div>
     <button class="gear" id="openSettings" aria-label="Settings">⚙</button>
   </div>
   <div class="period">
@@ -62,14 +62,13 @@
     <div class="fixed-card" id="billsCard"></div>
   </div>
 
-  <div class="screen" id="screen-trends">
+  <div class="screen" id="screen-insights">
     <div class="chips range-chips" id="rangeChips">
       <button class="chip" data-range="3">3 months</button>
       <button class="chip selected" data-range="6">6 months</button>
-      <button class="chip" data-range="9">9 months</button>
       <button class="chip" data-range="ytd">YTD</button>
     </div>
-    <div id="trendCharts"></div>
+    <div id="insightsBody"></div>
   </div>
 
   <div class="screen" id="screen-summary">
@@ -83,7 +82,7 @@
 <nav class="tabbar">
   <button class="tab active" data-screen="overview"><span class="ic">◔</span>Overview</button>
   <button class="tab" data-screen="bills"><span class="ic">☑</span>Bills</button>
-  <button class="tab" data-screen="trends"><span class="ic">⤴</span>Trends</button>
+  <button class="tab" data-screen="insights"><span class="ic">⤴</span>Insights</button>
   <button class="tab" data-screen="summary"><span class="ic">≡</span>Summary</button>
 </nav>
 
@@ -98,6 +97,7 @@
     <div class="field">
       <label for="merchantInput">Merchant</label>
       <input type="text" id="merchantInput" maxlength="100" autocomplete="off" placeholder="e.g. Aldi or Amazon">
+      <div class="chips merchant-suggest" id="merchantSuggest"></div>
     </div>
     <div class="field">
       <label>Type</label>
