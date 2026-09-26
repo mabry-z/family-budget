@@ -68,12 +68,14 @@ function periodRangeLabel(period) {
 // ---------- Loading ----------
 
 let loadToken = 0;
+let lastLoadedAt = 0;
 
-async function loadAll() {
+// quiet: background refresh — don't dim the screen.
+async function loadAll({ quiet = false } = {}) {
   const token = ++loadToken;
   const period = { ...state.period };
   renderPeriodLabel();
-  document.body.classList.add('is-loading');
+  if (!quiet) document.body.classList.add('is-loading');
   invalidateTrends();
 
   try {
@@ -100,6 +102,7 @@ async function loadAll() {
       .sort((a, b) => (a.sort_order - b.sort_order) || (a.id - b.id));
     state.fixedCosts = fixedCosts;
     state.expenses = expenses;
+    lastLoadedAt = Date.now();
     render();
   } catch (err) {
     if (token === loadToken) showToast(`Couldn't load this period: ${errorMessage(err)}`);
@@ -169,6 +172,36 @@ function askAboutPayday() {
   const prompt = pendingPayday();
   if (prompt) openPaydaySheet(prompt);
 }
+
+// ---------- Refresh on return ----------
+// Phones pause the page in the background, so reload whenever the app comes
+// back into view — that's when the other person's changes show up.
+
+const REFRESH_MIN_GAP_MS = 5000;
+
+async function refreshOnReturn() {
+  if (!state.budget || Date.now() - lastLoadedAt < REFRESH_MIN_GAP_MS) return;
+  if (document.querySelector('.sheet-backdrop.open')) return; // don't disturb a sheet in progress
+  lastLoadedAt = Date.now();
+
+  // Someone may have started a new period (or the date moved on); follow
+  // along if we were looking at the current one.
+  const wasCurrent = samePeriod(state.period, currentPeriod());
+  try {
+    state.payPeriods = await db.loadPayPeriods();
+  } catch {
+    return; // offline; try again next time
+  }
+  if (wasCurrent) state.period = currentPeriod();
+  await loadAll({ quiet: true });
+  askAboutPayday();
+}
+
+document.addEventListener('visibilitychange', () => {
+  if (document.visibilityState === 'visible') refreshOnReturn();
+});
+window.addEventListener('focus', refreshOnReturn);
+window.addEventListener('pageshow', e => { if (e.persisted) refreshOnReturn(); });
 
 // ---------- Navigation ----------
 
