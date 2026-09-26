@@ -242,8 +242,23 @@ document.querySelectorAll('.tab').forEach(tab => {
       s.classList.toggle('active', s.id === `screen-${state.activeScreen}`);
     });
     if (state.activeScreen === 'insights' && state.budget) renderInsights();
+    showFab();
   });
 });
+
+// The + button tucks away while scrolling down (so it doesn't cover the last
+// rows) and comes back on scrolling up or near the top.
+const fabEl = document.getElementById('openExpense');
+const showFab = () => fabEl.classList.remove('tucked');
+let lastScrollY = 0;
+document.addEventListener('scroll', e => {
+  const t = e.target;
+  if (t !== document && t !== document.body && t !== document.documentElement) return; // lists, sheets
+  const y = Math.max(window.scrollY, document.body.scrollTop, document.documentElement.scrollTop);
+  if (y < 40 || y < lastScrollY - 4) showFab();
+  else if (y > lastScrollY + 4) fabEl.classList.add('tucked');
+  if (Math.abs(y - lastScrollY) > 4) lastScrollY = y;
+}, { capture: true, passive: true });
 
 // ---------- Screens & sheets ----------
 
