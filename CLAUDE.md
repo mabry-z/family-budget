@@ -80,8 +80,10 @@ Static HTML/CSS/JS (ES modules, no build step) served by GitHub Pages from
 ## Workflow (the owner's preferences)
 
 - **Plan first** for anything sizeable; wait for approval before building.
-- **Read-only checks only** against the live Supabase data (the anon key via
-  curl or the browser). Never save, delete or create real data while
+- **Read-only checks only** against the live Supabase data. Since 005 the
+  publishable key alone gets "permission denied" everywhere (that's the
+  check that the lock-down holds); real data is only visible signed in, and
+  only the owner signs in. Never save, delete or create real data while
   testing — the owner tests anything that writes. Browsing to a period that
   doesn't exist yet creates it, so stay on existing periods.
 - **Migrations are run by the owner** in the Supabase SQL editor. Write them
@@ -102,11 +104,6 @@ Static HTML/CSS/JS (ES modules, no build step) served by GitHub Pages from
 
 ## Open items
 
-- Accounts + households rollout (see `docs/households-plan.md`): 004 is run;
-  next the owner tests sign-in locally, the app is pushed, then the owner
-  runs `005_lock_down.sql`. Until 005 runs, the publishable key still has
-  full access to the budget tables, and `current_household_id()` falls back
-  to the only household when nobody is signed in.
 - Cleanup (after households): drop `budget_settings`, and stop writing the
   legacy `expenses.category` text.
 - Before other households: see "Before sharing" in the plan.

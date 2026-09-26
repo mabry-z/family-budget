@@ -1,7 +1,9 @@
 # Plan: accounts and households
 
-Status (2026-09-26): **approved; 004 run; sign-in app built on `redesign`
-(not pushed); 005 written, not run.** Next: owner tests locally, push, 005. Read
+Status (2026-09-26): **done for Mabry Household** — 004 run, sign-in app
+live, 005 run; the publishable key alone gets "permission denied" on every
+table, view and function. Remaining: "Before sharing with other
+households" below. Read
 `CLAUDE.md` first for how the app works and the owner's rules. The owner's
 answers to the original questions are at the end of this file.
 
