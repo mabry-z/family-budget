@@ -2,6 +2,9 @@ export const SUPABASE_URL = 'https://ffjaqdtdoqkvlrcfqnrx.supabase.co';
 export const SUPABASE_ANON_KEY = 'sb_publishable_lwdziY_FYlVNYoTh-Z2oTw_3SoDNDNr';
 
 // `value` is what's stored in expenses.card, so existing rows keep matching.
+// The database only accepts values listed in the expenses_card_check
+// constraint (see supabase/migrations/002_allow_usaa_other_cards.sql);
+// adding a card here means updating that constraint too.
 export const CARDS = [
   { value: 'Chase',     label: 'Chase', badge: 'CH', color: '#1B3A6B' },
   { value: 'AMEX',      label: 'AMEX',  badge: 'AX', color: '#0E8C86' },
