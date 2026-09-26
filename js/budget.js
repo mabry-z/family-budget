@@ -25,13 +25,17 @@ export function signedAmount(expense) {
 }
 
 // ---------- Pay periods ----------
-// A period is { year, month (1–12), startDay (1 or 16) }.
+// A period is { year, month (1–12), startDay (1 or 16) }. startDay is only an
+// identifier — 16 means "the mid-month paycheck", which normally starts on the
+// 15th. Real start dates come from pay_periods.starts_on (see app.js).
 
+// Normal-schedule period for a date (1st–14th / 15th–end), used when there's
+// no confirmed start date to go by.
 export function periodForDate(date) {
   return {
     year: date.getFullYear(),
     month: date.getMonth() + 1,
-    startDay: date.getDate() <= 15 ? 1 : 16,
+    startDay: date.getDate() <= 14 ? 1 : 16,
   };
 }
 
@@ -59,16 +63,12 @@ export function samePeriod(a, b) {
   return periodStartISO(a) === periodStartISO(b);
 }
 
-export function periodLabel(period) {
-  const endDay = period.startDay === 1 ? 15 : new Date(period.year, period.month, 0).getDate();
-  return `${MONTHS_SHORT[period.month - 1]} ${period.startDay}–${endDay}, ${period.year}`;
-}
-
 // ---------- Budget ----------
 
-// Extra is never stored: it's whatever is left after fixed costs and every other category.
-export function extraAmount(starting, fixedCosts, periodCategories) {
-  return starting - sum(fixedCosts, f => f.amount) - sum(periodCategories, c => c.amount);
+// An emptied category keeps only what was spent (never below 0, never above
+// its budget); the rest of its money belongs to Extra for that period.
+export function effectiveBudget(amount, spent, emptied) {
+  return emptied ? Math.max(0, Math.min(amount, spent)) : amount;
 }
 
 export function barFor(spent, budget, isExtra) {
@@ -85,27 +85,42 @@ export function barFor(spent, budget, isExtra) {
 
 // One entry per card on the Overview, Extra last. Expenses whose category
 // isn't part of this period land in Extra so nothing goes missing.
-export function buildBudget({ starting, fixedCosts, periodCategories, extraCategory, expenses, categoryIdOf }) {
+//
+// Extra is never stored: starting − fixed costs − every other category's
+// (effective) budget + whatever Extra carried in from the previous period.
+export function buildBudget({ starting, carryIn, fixedCosts, periodCategories, extraCategory, expenses, categoryIdOf }) {
   const fixedTotal = sum(fixedCosts, f => f.amount);
-  const extra = extraAmount(starting, fixedCosts, periodCategories);
   const inPeriod = new Set(periodCategories.map(c => c.id));
   const bucketOf = e => {
     const id = categoryIdOf(e);
     return inPeriod.has(id) ? id : extraCategory.id;
   };
+  const withSpending = c => {
+    const list = expenses.filter(e => bucketOf(e) === c.id);
+    return { ...c, expenses: list, spent: sum(list, signedAmount) };
+  };
 
-  const cards = [
-    ...periodCategories.map(c => ({ ...c, budget: c.amount, isExtra: false })),
-    { ...extraCategory, budget: extra, isExtra: true },
-  ].map(card => {
-    const list = expenses.filter(e => bucketOf(e) === card.id);
-    const spent = sum(list, signedAmount);
-    return { ...card, expenses: list, spent, bar: barFor(spent, card.budget, card.isExtra) };
+  const categoryCards = periodCategories.map(withSpending).map(c => {
+    const budget = effectiveBudget(c.amount, c.spent, c.emptied);
+    return {
+      ...c,
+      isExtra: false,
+      budget,
+      moved: c.amount - budget,            // sent to Extra by emptying
+      leftover: Math.max(0, c.amount - c.spent), // what emptying would move
+    };
   });
+  const moved = sum(categoryCards, c => c.moved);
+  const extra = starting + carryIn - fixedTotal - sum(categoryCards, c => c.budget);
+  const extraCard = { ...withSpending(extraCategory), isExtra: true, budget: extra, carryIn };
 
-  const categoryBudgets = starting - fixedTotal;
+  const cards = [...categoryCards, extraCard].map(c => ({ ...c, bar: barFor(c.spent, c.budget, c.isExtra) }));
+  const categoryBudgets = starting + carryIn - fixedTotal;
   const spent = sum(cards, c => c.spent);
-  return { cards, bucketOf, starting, fixedTotal, extra, categoryBudgets, spent, remaining: categoryBudgets - spent };
+  return {
+    cards, bucketOf, starting, carryIn, fixedTotal, extra, moved,
+    categoryBudgets, spent, remaining: categoryBudgets - spent,
+  };
 }
 
 export function cardTotals(expenses, cards) {

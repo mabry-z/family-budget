@@ -1,5 +1,5 @@
 import { CATEGORY_COLORS } from '../config.js';
-import { money, parseWhole, periodLabel } from '../budget.js';
+import { money, parseWhole, effectiveBudget } from '../budget.js';
 import { errorMessage, showFormError, openSheet, closeSheet, wireSheet } from './dom.js';
 
 const backdrop = document.getElementById('settingsBackdrop');
@@ -13,6 +13,8 @@ const extraHint = document.getElementById('extraHint');
 const fixedLabel = document.getElementById('fixedLabel');
 const fixedRows = document.getElementById('fixedCostRows');
 const addFixedBtn = document.getElementById('addFixedRow');
+const startsOnField = document.getElementById('startsOnField');
+const startsOnInput = document.getElementById('startsOnInput');
 const errorEl = document.getElementById('settingsError');
 const submitBtn = document.getElementById('settingsSubmit');
 
@@ -36,17 +38,29 @@ function makeRow({ name = '', amount = '', amountClass, data = {}, lockName = fa
   return row;
 }
 
+// Same formula as the Extra card: emptied categories only count what they've
+// spent, and Extra's carry-in from last period is included.
 function recomputeExtra() {
-  const total = selector => [...form.querySelectorAll(selector)]
+  const fixedTotal = [...fixedRows.querySelectorAll('.fixed-amt')]
     .reduce((s, input) => s + (parseWhole(input.value) ?? 0), 0);
-  const extra = (parseWhole(startingInput.value) ?? 0) - total('.fixed-amt') - total('.cat-amt');
+  const categoryTotal = [...categoryRows.children].reduce((s, row) => {
+    const amount = parseWhole(row.querySelector('.cat-amt').value) ?? 0;
+    return s + effectiveBudget(amount, Number(row.dataset.spent || 0), row.dataset.emptied === 'true');
+  }, 0);
+  const { carryIn } = snapshot;
+  const extra = (parseWhole(startingInput.value) ?? 0) + carryIn - fixedTotal - categoryTotal;
   const negative = extra < 0;
+
+  let hint = EXTRA_HINT;
+  if (carryIn) hint += ` · includes ${carryIn > 0 ? '+' : '−'}${money(Math.abs(carryIn))} carried from last period`;
+  if (snapshot.categories.some(c => c.emptied)) hint += ' · emptied categories count only what they spent';
+
   extraInput.value = extra.toLocaleString('en-US');
   extraInput.classList.toggle('negative', negative);
   extraHint.classList.toggle('negative', negative);
   extraHint.textContent = negative
     ? `Over-allocated by ${money(-extra)}. Lower a category or fixed cost, or raise the starting budget.`
-    : EXTRA_HINT;
+    : hint;
 }
 
 function nextColor() {
@@ -123,9 +137,13 @@ export function initSettingsSheet(context) {
     showFormError(errorEl, '');
 
     const { period } = snapshot;
+    const startsOn = snapshot.startsOn && startsOnInput.value !== snapshot.startsOn ? startsOnInput.value : null;
+    if (snapshot.startsOn && !startsOnInput.value) {
+      return showFormError(errorEl, 'Pick the date this period started.');
+    }
     submitBtn.disabled = true;
     try {
-      await ctx.onSave({
+      await ctx.onSave(startsOn, {
         p_year: period.year,
         p_month: period.month,
         p_start_day: period.startDay,
@@ -154,12 +172,16 @@ export function initSettingsSheet(context) {
 }
 
 export function openSettingsSheet() {
-  // { period, isPast, todayStartISO, starting, extraName, categories: [{id, name, color, amount}],
+  // { period, label, isPast, todayStartISO, startsOn (ISO or null), starting, carryIn, extraName,
+  //   categories: [{id, name, color, amount, emptied, spent}],
   //   fixedCosts: [{id, template_id, name, amount}], expenseCountByCategory: Map }
   snapshot = ctx.getSnapshot();
-  const { period, isPast } = snapshot;
-  const label = periodLabel(period);
-  const half = period.startDay === 1 ? '1st–15th' : '16th–end-of-month';
+  const { period, isPast, label } = snapshot;
+  const half = period.startDay === 1 ? '1st-of-the-month' : 'mid-month';
+
+  // Only periods that have started have a date to correct.
+  startsOnField.hidden = !snapshot.startsOn;
+  startsOnInput.value = snapshot.startsOn ?? '';
 
   scopeEl.textContent = isPast
     ? `${label} is a past period. Changes here apply only to it; your defaults and other periods stay the same. Categories can't be added, renamed or removed in a past period.`
@@ -171,12 +193,12 @@ export function openSettingsSheet() {
     name: c.name,
     amount: c.amount,
     amountClass: 'cat-amt',
-    data: { id: c.id, color: c.color },
+    data: { id: c.id, color: c.color, emptied: c.emptied, spent: c.spent },
     lockName: isPast,
   })));
   addCategoryBtn.hidden = isPast;
 
-  fixedLabel.textContent = isPast ? 'Fixed costs (this period)' : `Fixed costs (${half} periods)`;
+  fixedLabel.textContent = isPast ? 'Fixed costs (this period)' : `Fixed costs (${half} paychecks)`;
   fixedRows.replaceChildren(...snapshot.fixedCosts.map(f => makeRow({
     name: f.name,
     amount: f.amount,

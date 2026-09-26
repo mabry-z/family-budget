@@ -1,4 +1,4 @@
-import { money, MONTHS_SHORT } from '../budget.js';
+import { money, sum, MONTHS_SHORT } from '../budget.js';
 import { esc } from './dom.js';
 
 const cardsEl = document.getElementById('categoryCards');
@@ -6,6 +6,7 @@ const recentEl = document.getElementById('recentList');
 
 let expandedId = null;
 let expensesById = new Map();
+let sweepable = []; // categories with money left that haven't been emptied
 
 function shortDate(iso) {
   const d = new Date(iso);
@@ -26,6 +27,33 @@ function expenseRowHtml(e, meta) {
     + `</div>`;
 }
 
+function noteHtml(card) {
+  if (card.isExtra) {
+    if (!card.carryIn) return '';
+    const sign = card.carryIn > 0 ? '+' : '−';
+    return `<div class="cat-note${card.carryIn < 0 ? ' negative' : ''}">${sign} ${money(Math.abs(card.carryIn))} carried from last period</div>`;
+  }
+  if (card.emptied) {
+    return `<div class="cat-note">Emptied · ${money(card.moved)} moved to Extra</div>`;
+  }
+  return '';
+}
+
+// Shown at the bottom of an expanded card. Extra's gathers every leftover at once.
+function actionHtml(card) {
+  if (card.isExtra) {
+    if (!sweepable.length) return '';
+    return `<button type="button" class="cat-action" data-action="sweep">Move all leftovers here (${money(sum(sweepable, c => c.leftover))})</button>`;
+  }
+  if (card.emptied) {
+    return `<button type="button" class="cat-action" data-action="undo-empty" data-cat-id="${card.id}">Undo — give ${money(card.moved)} back to ${esc(card.name)}</button>`;
+  }
+  if (card.leftover > 0) {
+    return `<button type="button" class="cat-action" data-action="empty" data-cat-id="${card.id}">Move ${money(card.leftover)} leftover to Extra</button>`;
+  }
+  return '';
+}
+
 function cardHtml(card) {
   const rows = card.expenses.length
     ? card.expenses.map(e => expenseRowHtml(e, `${shortDate(e.created_at)} · ${e.card}`)).join('')
@@ -37,7 +65,8 @@ function cardHtml(card) {
       <div class="cat-nums"><b>${money(card.spent)}</b> / <span class="${overBudget}">${money(card.budget)}</span></div>
     </div>
     <div class="bar-track"><div class="bar-fill ${card.bar.cls}" style="width:${card.bar.pct}%"></div></div>
-    <div class="expense-list">${rows}</div>
+    ${noteHtml(card)}
+    <div class="expense-list">${card.isExtra ? actionHtml(card) + rows : rows + actionHtml(card)}</div>
   </div>`;
 }
 
@@ -50,8 +79,25 @@ export function expandCategory(categoryId, { scroll = false } = {}) {
   if (card && scroll) setTimeout(() => card.scrollIntoView({ behavior: 'smooth', block: 'center' }), 60);
 }
 
-export function initOverview({ onEditExpense }) {
+// onEmpty(categoryIds, emptied): mark categories emptied (or not) for this period.
+export function initOverview({ onEditExpense, onEmpty }) {
+  const run = async (button, categoryIds, emptied) => {
+    button.disabled = true;
+    try {
+      await onEmpty(categoryIds, emptied);
+    } finally {
+      button.disabled = false;
+    }
+  };
+
   cardsEl.addEventListener('click', e => {
+    const action = e.target.closest('[data-action]');
+    if (action) {
+      const { action: kind, catId } = action.dataset;
+      if (kind === 'sweep') run(action, sweepable.map(c => c.id), true);
+      else run(action, [Number(catId)], kind === 'empty');
+      return;
+    }
     const row = e.target.closest('[data-expense]');
     if (row) {
       onEditExpense(expensesById.get(row.dataset.expense));
@@ -71,6 +117,7 @@ export function initOverview({ onEditExpense }) {
 
 export function renderOverview(budget, expenses) {
   expensesById = new Map(expenses.map(e => [String(e.id), e]));
+  sweepable = budget.cards.filter(c => !c.isExtra && !c.emptied && c.leftover > 0);
   cardsEl.innerHTML = budget.cards.map(cardHtml).join('');
 
   const nameById = new Map(budget.cards.map(c => [c.id, c.name]));

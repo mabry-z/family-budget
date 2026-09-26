@@ -101,6 +101,12 @@
     <div class="sheet-head"><h2>Settings</h2><button type="button" class="sheet-close" data-close aria-label="Close">✕</button></div>
     <div class="scope-note" id="settingsScope"></div>
 
+    <div class="field" id="startsOnField">
+      <label for="startsOnInput">Period started</label>
+      <input type="date" id="startsOnInput">
+      <div class="hint">The day this period's pay arrived. The previous period ends the day before.</div>
+    </div>
+
     <div class="field">
       <label for="startingBudget">Starting budget</label>
       <div class="amount-field"><span>$</span><input type="text" inputmode="numeric" id="startingBudget"></div>
@@ -122,6 +128,22 @@
 
     <div class="form-error" id="settingsError" hidden></div>
     <button type="submit" class="save-btn" id="settingsSubmit" style="margin-top:10px;">Save settings</button>
+  </form>
+</div>
+
+<div class="sheet-backdrop" id="paydayBackdrop">
+  <form class="sheet" id="paydayForm" novalidate>
+    <div class="grabber"></div>
+    <div class="sheet-head"><h2>New pay period?</h2><button type="button" class="sheet-close" data-close aria-label="Close">✕</button></div>
+    <p class="sheet-text"><strong id="paydayQuestion"></strong></p>
+    <p class="sheet-text" id="paydayDetail"></p>
+    <div class="field">
+      <label for="paydayDate">Pay arrived on</label>
+      <input type="date" id="paydayDate">
+    </div>
+    <div class="form-error" id="paydayError" hidden></div>
+    <button type="submit" class="save-btn" id="paydaySubmit">Start new period</button>
+    <button type="button" class="secondary-btn" id="paydayNotYet">Not yet</button>
   </form>
 </div>
 

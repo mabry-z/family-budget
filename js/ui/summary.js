@@ -9,8 +9,10 @@ export function renderSummary(budget, cardTotals) {
   document.getElementById('budgetSummary').innerHTML = `
     <h3>Budget summary</h3>
     ${row('Starting', budget.starting)}
+    ${budget.carryIn ? row('Carried in (Extra)', budget.carryIn) : ''}
     ${row('Fixed costs', budget.fixedTotal)}
     ${row('Category budgets', budget.categoryBudgets)}
+    ${budget.moved ? row('Moved to Extra', budget.moved) : ''}
     ${row('Spent (categories)', budget.spent)}
     ${row('Remaining (categories)', budget.remaining)}`;
 

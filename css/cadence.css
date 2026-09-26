@@ -212,3 +212,11 @@ button{font-family:inherit; cursor:pointer;}
   padding:12px 14px; font-size:13.5px; line-height:1.4;
 }
 body.is-loading main{opacity:.6; transition:opacity .15s ease;}
+
+.cat-note{font-size:12px; color:var(--ink-soft); margin-top:9px;}
+.cat-action{display:block; width:100%; margin-top:14px; padding:10px; border-radius:12px; border:1px dashed var(--glass-border); background:transparent; color:var(--accent); font-size:13px;}
+.cat-action:disabled{opacity:.5;}
+input[type=date]{width:100%; padding:11px 14px; border-radius:12px; border:1px solid var(--glass-border); font:inherit; font-size:14.5px; background:var(--glass); color:var(--ink); color-scheme:dark;}
+.sheet-text{font-size:14px; line-height:1.45; color:var(--ink-soft); margin:0 0 12px;}
+.sheet-text strong{color:var(--ink); font-weight:500; font-size:15px;}
+.secondary-btn{width:100%; padding:13px; margin-top:10px; border-radius:14px; border:1px solid var(--glass-border); background:transparent; color:var(--ink-soft); font-size:14.5px;}

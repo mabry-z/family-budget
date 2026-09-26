@@ -23,12 +23,42 @@ export function ensurePeriod(period) {
   }));
 }
 
+// Every period that exists, oldest first. Small: two a month.
+export function loadPayPeriods() {
+  return run(supabase.from('pay_periods')
+    .select('id, year, month, start_day, start_date, starts_on, starting_amount')
+    .order('start_date'));
+}
+
+// Confirms the day a period actually began (payday).
+export function startPeriod(period, startsOnISO) {
+  return run(supabase.rpc('start_period', {
+    p_year: period.year,
+    p_month: period.month,
+    p_start_day: period.startDay,
+    p_starts_on: startsOnISO,
+  }));
+}
+
+// Extra carried in from earlier periods; 0 before carry-over begins.
+export async function loadCarryIn(periodId) {
+  const rows = await run(supabase.from('period_extra_carry').select('carry_in').eq('period_id', periodId));
+  return rows.length ? rows[0].carry_in : 0;
+}
+
+export function setCategoryEmptied(periodId, categoryIds, emptied) {
+  return run(supabase.from('period_categories')
+    .update({ emptied })
+    .eq('period_id', periodId)
+    .in('category_id', categoryIds));
+}
+
 export function loadCategories() {
   return run(supabase.from('categories').select('*').order('sort_order').order('id'));
 }
 
 export function loadPeriodCategories(periodId) {
-  return run(supabase.from('period_categories').select('category_id, amount').eq('period_id', periodId));
+  return run(supabase.from('period_categories').select('category_id, amount, emptied').eq('period_id', periodId));
 }
 
 export function loadFixedCosts(period) {
