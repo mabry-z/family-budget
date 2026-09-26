@@ -125,11 +125,11 @@ export function buildBudget({ starting, carryIn, fixedCosts, periodCategories, e
   const extraCard = { ...withSpending(extraCategory), isExtra: true, budget: extra, carryIn };
 
   const cards = [...categoryCards, extraCard].map(c => ({ ...c, bar: barFor(c.spent, c.budget, c.isExtra) }));
-  const categoryBudgets = starting + carryIn - fixedTotal;
+  const toSpend = starting + carryIn - fixedTotal; // everything left after bills, Extra included
   const spent = sum(cards, c => c.spent);
   return {
     cards, bucketOf, starting, carryIn, fixedTotal, extra, moved,
-    categoryBudgets, spent, remaining: categoryBudgets - spent,
+    toSpend, spent, left: toSpend - spent,
   };
 }
 

@@ -132,7 +132,11 @@ function render() {
   });
   renderOverview(state.budget, state.expenses);
   renderBills(state.fixedCosts);
-  renderSummary(state.budget, cardTotals(state.expenses, CARDS));
+  renderSummary(state.budget, cardTotals(state.expenses, CARDS), {
+    fixedCosts: state.fixedCosts,
+    start: startOf(state.period),
+    end: addDays(startOf(shiftPeriod(state.period, 1)), -1),
+  });
   if (state.activeScreen === 'insights') renderInsights();
 }
 
