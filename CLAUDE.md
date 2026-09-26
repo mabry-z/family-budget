@@ -12,15 +12,24 @@ Static HTML/CSS/JS (ES modules, no build step) served by GitHub Pages from
 - `js/supabase.js` — client. `js/data.js` — every Supabase read/write/RPC.
 - `js/budget.js` — pure budget math and period helpers (no DOM, no Supabase).
 - `js/paydays.js` — pure date helpers, federal holidays, payday rule.
-- `js/app.js` — state, loading, period navigation, tabs, wiring.
+- `js/auth.js` — Supabase Auth: session, sign in/out, change password.
+- `js/app.js` — sign-in gate, state, loading, period navigation, tabs, wiring.
 - `js/ui/*.js` — one module per screen/sheet (overview, bills, trends,
-  summary, expense-sheet, settings-sheet, payday-sheet) plus `dom.js` helpers.
+  summary, expense-sheet, settings-sheet, payday-sheet, sign-in, household)
+  plus `dom.js` helpers.
 - `supabase/migrations/NNN_*.sql` — run by hand, in order (see Workflow).
 - `dev/serve.ps1` — local static server (http://localhost:8000).
-- `docs/households-plan.md` — plan for accounts + households (not built yet).
+- `docs/households-plan.md` — plan and rollout for accounts + households.
 
 ## Data model (Supabase, schema `public`)
 
+- Sign-in is Supabase Auth, email + password; sign-ups are off (accounts are
+  added in the dashboard). `households` + `household_members` (role owner |
+  member, one household per user). Every budget table has `household_id`
+  defaulting to `current_household_id()`, and RLS policy "household
+  members" limits rows to it. `household_info()` feeds Settings → Household.
+  Only household: **Mabry Household** (mabryz@gmail.com owner,
+  mabrylh@gmail.com member).
 - A pay period is identified everywhere by `(year, month, start_day)`.
   `start_day` is 1 or 16 and is only a label: **16 means "the mid-month
   paycheck", whose normal start is the 15th.** Normal ranges are 1st–14th
@@ -28,7 +37,7 @@ Static HTML/CSS/JS (ES modules, no build step) served by GitHub Pages from
 - `pay_periods` — one row per period; `start_date` is generated from the
   label (used for ordering and "this period onward"); `starts_on` is the real
   start (payday), null until confirmed; `starting_amount`.
-- `budget_defaults` — single row (id = 1): default `starting_amount`
+- `budget_defaults` — one row per household: default `starting_amount`
   (3500 originally), `carry_start` (2026-10-01).
 - `categories` — defaults (`default_amount`, `color`, `sort_order`,
   `is_active` = archived when false). Exactly one row has
@@ -76,7 +85,7 @@ Static HTML/CSS/JS (ES modules, no build step) served by GitHub Pages from
   testing — the owner tests anything that writes. Browsing to a period that
   doesn't exist yet creates it, so stay on existing periods.
 - **Migrations are run by the owner** in the Supabase SQL editor. Write them
-  to `supabase/migrations/NNN_name.sql` (next number: **004**), make them
+  to `supabase/migrations/NNN_name.sql` (next number: **006**), make them
   safe to re-run, put the file on the clipboard
   (`Get-Content -Raw <file> | Set-Clipboard`) and give short click-by-click
   steps. Use "Run and enable RLS" if Supabase asks.
@@ -93,8 +102,11 @@ Static HTML/CSS/JS (ES modules, no build step) served by GitHub Pages from
 
 ## Open items
 
-- `004`: accounts + households — see `docs/households-plan.md`.
+- Accounts + households rollout (see `docs/households-plan.md`): 004 is run;
+  next the owner tests sign-in locally, the app is pushed, then the owner
+  runs `005_lock_down.sql`. Until 005 runs, the publishable key still has
+  full access to the budget tables, and `current_household_id()` falls back
+  to the only household when nobody is signed in.
 - Cleanup (after households): drop `budget_settings`, and stop writing the
   legacy `expenses.category` text.
-- Until households ship, the database policies allow the publishable key
-  full access to the budget tables.
+- Before other households: see "Before sharing" in the plan.

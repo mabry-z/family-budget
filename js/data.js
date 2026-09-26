@@ -14,6 +14,12 @@ function inPeriod(query, period) {
     .eq('period_start_day', period.startDay);
 }
 
+// The signed-in user's household ({ name, role, members }), or null if they
+// aren't in one. Every other read is limited to this household by the database.
+export function loadHouseholdInfo() {
+  return run(supabase.rpc('household_info'));
+}
+
 // Creates the period from the current defaults the first time it's opened.
 export function ensurePeriod(period) {
   return run(supabase.rpc('ensure_period', {

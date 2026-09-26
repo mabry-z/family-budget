@@ -1,4 +1,5 @@
 import * as db from './data.js';
+import * as auth from './auth.js';
 import { CARDS } from './config.js';
 import {
   periodForDate, shiftPeriod, samePeriod, periodStartISO, buildBudget, cardTotals,
@@ -12,6 +13,8 @@ import { initTrends, renderTrends, invalidateTrends } from './ui/trends.js';
 import { initExpenseSheet, openExpenseSheet } from './ui/expense-sheet.js';
 import { initSettingsSheet, openSettingsSheet } from './ui/settings-sheet.js';
 import { initPaydaySheet, openPaydaySheet } from './ui/payday-sheet.js';
+import { initSignIn, showSignIn, showNoHousehold, hideGate } from './ui/sign-in.js';
+import { initHousehold, renderHousehold } from './ui/household.js';
 
 // Start asking about the next paycheck this many days before its expected
 // date — the bank usually deposits a day or two early.
@@ -329,9 +332,48 @@ document.getElementById('openSettings').addEventListener('click', () => {
   if (state.budget) openSettingsSheet();
 });
 
+initHousehold({
+  onChangePassword: async password => {
+    await auth.changePassword(password);
+    showToast('Password changed.', { ok: true });
+  },
+  onSignOut: signOut,
+});
+
+initSignIn({
+  onSignIn: async (email, password) => {
+    const session = await auth.signIn(email, password);
+    await enterApp(session);
+  },
+  onSignOut: signOut,
+});
+
+// ---------- Signing in and out ----------
+
+async function signOut() {
+  try {
+    await auth.signOut();
+  } catch (err) {
+    showToast(`Couldn't sign out: ${errorMessage(err)}`);
+  }
+}
+
+// However the session ended, start over from a clean page.
+auth.onSignedOut(() => window.location.reload());
+
 // ---------- Start ----------
 
-(async function start() {
+async function enterApp(session) {
+  let household = null;
+  try {
+    household = await db.loadHouseholdInfo();
+    if (!household) return showNoHousehold(session.user.email);
+  } catch (err) {
+    showToast(`Couldn't load your household: ${errorMessage(err)}`);
+  }
+  renderHousehold(household, session.user.email);
+  hideGate();
+
   try {
     state.payPeriods = await db.loadPayPeriods();
   } catch (err) {
@@ -340,4 +382,15 @@ document.getElementById('openSettings').addEventListener('click', () => {
   state.period = currentPeriod();
   await loadAll();
   askAboutPayday();
+}
+
+(async function start() {
+  let session = null;
+  try {
+    session = await auth.getSession();
+  } catch (err) {
+    showToast(`Couldn't check your sign-in: ${errorMessage(err)}`);
+  }
+  if (session) await enterApp(session);
+  else showSignIn();
 })();
