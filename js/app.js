@@ -16,6 +16,7 @@ import { initSettingsSheet, openSettingsSheet } from './ui/settings-sheet.js';
 import { initPaydaySheet, openPaydaySheet } from './ui/payday-sheet.js';
 import { initSignIn, showSignIn, showNoHousehold, hideGate } from './ui/sign-in.js';
 import { initHousehold, renderHousehold } from './ui/household.js';
+import { initAppearance } from './ui/appearance.js';
 
 // Start asking about the next paycheck this many days before its expected
 // date — the bank usually deposits a day or two early.
@@ -372,6 +373,8 @@ document.getElementById('openExpense').addEventListener('click', () => {
 document.getElementById('openSettings').addEventListener('click', () => {
   if (state.budget) openSettingsSheet();
 });
+
+initAppearance();
 
 initHousehold({
   onChangePassword: async password => {

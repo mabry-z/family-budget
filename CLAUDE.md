@@ -7,7 +7,9 @@ Static HTML/CSS/JS (ES modules, no build step) served by GitHub Pages from
 ## Files
 
 - `index.html` — markup and empty containers; all content is rendered by JS.
-- `css/cadence.css` — the Cadence design, then an "App additions" section.
+- `css/cadence.css` — colour tokens for dark (`:root`) and light
+  (`:root[data-theme="light"]`), the Cadence design, then "App additions".
+  Use tokens only — no colour literals outside those two blocks.
 - `js/config.js` — Supabase URL/publishable key, the card list, category colours.
 - `js/supabase.js` — client. `js/data.js` — every Supabase read/write/RPC.
 - `js/budget.js` — pure budget math and period helpers (no DOM, no Supabase).
@@ -15,9 +17,13 @@ Static HTML/CSS/JS (ES modules, no build step) served by GitHub Pages from
 - `js/merchants.js` — pure store-name grouping (Insights) and suggestions
   (expense sheet).
 - `js/auth.js` — Supabase Auth: session, sign in/out, change password.
+- `js/theme.js` — light/dark: a plain script in `<head>` (runs before the
+  page draws) that sets `<html data-theme>` from this phone's choice
+  (Auto / Light / Dark, default Dark) kept in localStorage.
 - `js/app.js` — sign-in gate, state, loading, period navigation, tabs, wiring.
 - `js/ui/*.js` — one module per screen/sheet (overview, bills, insights,
-  summary, expense-sheet, settings-sheet, payday-sheet, sign-in, household)
+  summary, expense-sheet, settings-sheet, payday-sheet, sign-in, household,
+  appearance)
   plus `dom.js` helpers.
 - `supabase/migrations/NNN_*.sql` — run by hand, in order (see Workflow).
 - `dev/serve.ps1` — local static server (http://localhost:8000).

@@ -7,6 +7,8 @@
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link href="https://fonts.googleapis.com/css2?family=Unbounded:wght@600;700;800&display=swap" rel="stylesheet">
 <link rel="stylesheet" href="css/cadence.css">
+<meta name="theme-color" content="#0A0C10">
+<script src="js/theme.js"></script>
 </head>
 <body class="gated">
 
@@ -155,6 +157,14 @@
 
     <div class="form-error" id="settingsError" hidden></div>
     <button type="submit" class="save-btn" id="settingsSubmit" style="margin-top:10px;">Save settings</button>
+
+    <div class="section-label appearance-label">Appearance</div>
+    <div class="toggle-row" id="appearanceChips">
+      <button type="button" class="chip" data-value="auto">Auto</button>
+      <button type="button" class="chip" data-value="light">Light</button>
+      <button type="button" class="chip" data-value="dark">Dark</button>
+    </div>
+    <div class="hint">Auto follows your phone's setting. Saved on this phone only.</div>
 
     <div class="section-label household-label">Household</div>
     <div class="household-card" id="householdInfo"></div>
