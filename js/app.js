@@ -4,7 +4,7 @@ import { CARDS } from './config.js';
 import {
   periodForDate, shiftPeriod, samePeriod, periodStartISO, buildBudget, cardTotals, snapshotCategories,
 } from './budget.js';
-import { merchantIndex, suggestMerchants } from './merchants.js';
+import { merchantIndex, suggestMerchants, isSuggested } from './merchants.js';
 import { today, toISO, fromISO, addDays, rangeLabel, expectedPayday } from './paydays.js';
 import { showToast, errorMessage } from './ui/dom.js';
 import { initOverview, renderOverview } from './ui/overview.js';
@@ -17,6 +17,7 @@ import { initPaydaySheet, openPaydaySheet } from './ui/payday-sheet.js';
 import { initSignIn, showSignIn, showNoHousehold, hideGate } from './ui/sign-in.js';
 import { initHousehold, renderHousehold } from './ui/household.js';
 import { initAppearance } from './ui/appearance.js';
+import { initStoresSheet } from './ui/stores-sheet.js';
 
 // Start asking about the next paycheck this many days before its expected
 // date — the bank usually deposits a day or two early.
@@ -35,6 +36,7 @@ const state = {
   expenses: [],
   budget: null,
   merchants: new Map(),  // every store entered, for suggestions (see merchants.js)
+  hiddenMerchants: new Set(), // stores hidden from suggestions (merchantKey()s)
   activeScreen: 'overview',
 };
 
@@ -148,6 +150,36 @@ async function loadMerchants() {
   } catch {
     // Suggestions are a nicety; keep the list we had.
   }
+  try {
+    state.hiddenMerchants = new Set(await db.loadHiddenMerchants());
+  } catch {
+    // Same (and before migration 006 the table doesn't exist yet).
+  }
+}
+
+// Hide or unhide a store's suggestions. Changes straight away; put back if
+// the save fails.
+async function setMerchantHidden(key, hidden) {
+  const set = state.hiddenMerchants;
+  if (hidden) set.add(key); else set.delete(key);
+  try {
+    await (hidden ? db.hideMerchant(key) : db.unhideMerchant(key));
+  } catch (err) {
+    if (hidden) set.delete(key); else set.add(key);
+    showToast(`Couldn't ${hidden ? 'hide' : 'unhide'} that store: ${errorMessage(err)}`);
+  }
+}
+
+// For Settings → Store suggestions, each list A–Z.
+function storeLists() {
+  const byName = (a, b) => a.name.localeCompare(b.name);
+  const stores = [...state.merchants.values()];
+  return {
+    suggested: stores.filter(m => isSuggested(m, state.hiddenMerchants)).sort(byName),
+    hidden: [...state.hiddenMerchants]
+      .map(key => state.merchants.get(key) ?? { key, name: key, count: 0, lastUsed: null })
+      .sort(byName),
+  };
 }
 
 // ---------- Payday ----------
@@ -326,7 +358,9 @@ initInsights({
 initExpenseSheet({
   getCategoryChoices: () => state.budget.cards.map(c => ({ id: c.id, name: c.name })),
   categoryIdOf: expense => state.budget.bucketOf(expense),
-  suggestMerchants: (typed, categoryId) => suggestMerchants(state.merchants, typed, categoryId),
+  suggestMerchants: (typed, categoryId) =>
+    suggestMerchants(state.merchants, typed, categoryId, state.hiddenMerchants),
+  onHideMerchant: key => setMerchantHidden(key, true),
   onSave: async ({ id, category_id, ...fields }) => {
     const category = state.categories.find(c => c.id === category_id);
     // Keep the text column filled in too, so the old app on main still reads these rows.
@@ -396,6 +430,12 @@ document.getElementById('openSettings').addEventListener('click', () => {
 });
 
 initAppearance();
+
+initStoresSheet({
+  getStores: storeLists,
+  onHide: key => setMerchantHidden(key, true),
+  onUnhide: key => setMerchantHidden(key, false),
+});
 
 initHousehold({
   onChangePassword: async password => {

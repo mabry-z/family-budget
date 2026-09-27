@@ -25,23 +25,34 @@ function selectByValue(group, value) {
   selectChip(group, chip ?? group.querySelector('.chip'));
 }
 
-// Stores entered before, matching what's typed; tap one to fill it in.
+// Stores entered before, matching what's typed. Tap the name to fill it in,
+// or the ✕ end to hide that store from suggestions.
 function renderSuggestions() {
-  const names = ctx.suggestMerchants(merchantInput.value, Number(selectedValue(categoryChips)));
-  suggestEl.innerHTML = names.map(name =>
-    `<button type="button" class="chip" data-merchant="${esc(name)}">${esc(name)}</button>`).join('');
-  suggestEl.hidden = !names.length;
+  const stores = ctx.suggestMerchants(merchantInput.value, Number(selectedValue(categoryChips)));
+  suggestEl.innerHTML = stores.map(s =>
+    `<span class="chip suggest-chip">`
+    + `<button type="button" class="suggest-name" data-merchant="${esc(s.name)}">${esc(s.name)}</button>`
+    + `<button type="button" class="suggest-hide" data-hide="${esc(s.key)}" aria-label="Stop suggesting ${esc(s.name)}">✕</button>`
+    + `</span>`).join('');
+  suggestEl.hidden = !stores.length;
 }
 
 // ctx: { getCategoryChoices() → [{id, name}], categoryIdOf(expense),
-//        suggestMerchants(typed, categoryId) → [name],
+//        suggestMerchants(typed, categoryId) → [{name, key}], onHideMerchant(key),
 //        onSave({id?, category_id, merchant, amount, card, transaction_type}), onDelete(id) }
 export function initExpenseSheet(context) {
   ctx = context;
   wireSheet(backdrop);
 
   merchantInput.addEventListener('input', renderSuggestions);
-  suggestEl.addEventListener('click', e => {
+  suggestEl.addEventListener('click', async e => {
+    const hide = e.target.closest('[data-hide]');
+    if (hide) {
+      hide.closest('.chip').remove(); // straight away; the list redraws once it's saved
+      await ctx.onHideMerchant(hide.dataset.hide);
+      renderSuggestions();
+      return;
+    }
     const chip = e.target.closest('[data-merchant]');
     if (!chip) return;
     merchantInput.value = chip.dataset.merchant;

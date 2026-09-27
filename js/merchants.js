@@ -51,17 +51,20 @@ export function biggestPurchase(expenses) {
   return best;
 }
 
-// Every store ever entered: key → { name, count, byCategory: Map(categoryId → count) }.
+// Every store ever entered:
+// key → { name, count, lastUsed (Date), byCategory: Map(categoryId → count) }.
 export function merchantIndex(expenses, categoryIdOf) {
   const index = new Map();
   for (const e of expenses) {
     const key = merchantKey(e.merchant);
     if (!key) continue;
     let m = index.get(key);
-    if (!m) index.set(key, m = { key, spellings: new Map(), count: 0, byCategory: new Map() });
+    if (!m) index.set(key, m = { key, spellings: new Map(), count: 0, lastUsed: null, byCategory: new Map() });
     const spelling = tidy(e.merchant);
     m.spellings.set(spelling, (m.spellings.get(spelling) ?? 0) + 1);
     m.count += 1;
+    const used = e.created_at ? new Date(e.created_at) : null;
+    if (used && (!m.lastUsed || used > m.lastUsed)) m.lastUsed = used;
     const categoryId = categoryIdOf(e);
     m.byCategory.set(categoryId, (m.byCategory.get(categoryId) ?? 0) + 1);
   }
@@ -69,16 +72,29 @@ export function merchantIndex(expenses, categoryIdOf) {
   return index;
 }
 
+// A one-off store drops out of suggestions this long after it was used.
+export const ONE_OFF_DAYS = 30;
+
+// Suggested unless hidden, or used only once and not in the last 30 days.
+export function isSuggested(m, hidden, now = new Date()) {
+  if (hidden.has(m.key)) return false;
+  if (m.count >= 2) return true;
+  return !!m.lastUsed && now - m.lastUsed <= ONE_OFF_DAYS * 24 * 60 * 60 * 1000;
+}
+
 // Stores matching what's typed (start of the name or of any word), most used
 // in this category first, then most used overall. Nothing until typing starts.
-export function suggestMerchants(index, typed, categoryId, limit = 4) {
+// `hidden` is a Set of keys the household has hidden.
+export function suggestMerchants(index, typed, categoryId, hidden = new Set(), limit = 4) {
   const q = merchantKey(typed);
   if (!q) return [];
+  const now = new Date();
   const matches = [...index.values()].filter(m =>
-    m.key !== q && (m.key.startsWith(q) || m.key.split(' ').some(word => word.startsWith(q))));
+    m.key !== q && isSuggested(m, hidden, now)
+    && (m.key.startsWith(q) || m.key.split(' ').some(word => word.startsWith(q))));
   return matches
     .sort((a, b) => ((b.byCategory.get(categoryId) ?? 0) - (a.byCategory.get(categoryId) ?? 0))
       || (b.count - a.count) || a.name.localeCompare(b.name))
     .slice(0, limit)
-    .map(m => m.name);
+    .map(m => ({ name: m.name, key: m.key }));
 }

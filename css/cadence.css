@@ -263,14 +263,18 @@ body.gated > header, body.gated > main, body.gated > .fab, body.gated > .tabbar{
 input[type=email], input[type=password]{width:100%; padding:12px 14px; border-radius:12px; border:1px solid var(--glass-border); font-size:14.5px; background:var(--glass); color:var(--ink);}
 
 /* Settings → Household */
-.appearance-label, .household-label{margin-top:30px; padding-top:20px; border-top:1px solid var(--glass-border-soft);}
-.household-card{background:var(--glass); border:1px solid var(--glass-border-soft); border-radius:14px; padding:4px 14px; margin-bottom:4px;}
+.appearance-label, .stores-label, .household-label{margin-top:30px; padding-top:20px; border-top:1px solid var(--glass-border-soft);}
+.household-card, .list-card{background:var(--glass); border:1px solid var(--glass-border-soft); border-radius:14px; padding:4px 14px; margin-bottom:4px;}
 .household-name{font-size:14.5px; font-weight:500; padding:10px 0; border-bottom:1px solid var(--glass-border-soft);}
 .member-row{display:flex; justify-content:space-between; gap:10px; font-size:13.5px; padding:10px 0; border-bottom:1px solid var(--glass-border-soft);}
 .member-row:last-child{border-bottom:none;}
 .member-row .email{min-width:0; overflow:hidden; text-overflow:ellipsis; color:var(--ink-soft);}
 .member-row .role{flex-shrink:0; font-size:12.5px; color:var(--ink-faint);}
-.household-card .empty{padding:10px 0;}
+.household-card .empty, .list-card .empty{padding:10px 0;}
+.store-choice{display:flex; justify-content:space-between; align-items:center; gap:12px; padding:10px 0; border-bottom:1px solid var(--glass-border-soft); font-size:14px;}
+.store-choice:last-child{border-bottom:none;}
+.row-btn{flex-shrink:0; padding:6px 13px; border-radius:999px; border:1px solid var(--glass-border); background:var(--glass); color:var(--ink-soft); font-size:12.5px;}
+.row-btn:disabled{opacity:.5;}
 .toast.ok{background:var(--toast-ok); border-color:var(--ok-line);}
 
 /* Header: tab name beside the monogram; Insights has no period bar. */
@@ -281,6 +285,10 @@ header.no-period .title-row{margin-bottom:0;}
 .merchant-suggest{margin-top:8px;}
 .merchant-suggest[hidden]{display:none;}
 .merchant-suggest .chip{padding:7px 13px; font-size:13px;}
+.merchant-suggest .suggest-chip{display:inline-flex; align-items:stretch; padding:0; overflow:hidden;}
+.suggest-chip button{background:none; border:none; color:inherit; font:inherit;}
+.suggest-chip .suggest-name{padding:7px 10px 7px 13px;}
+.suggest-chip .suggest-hide{display:flex; align-items:center; padding:0 12px 0 10px; border-left:1px solid var(--glass-border-soft); color:var(--ink-faint); font-size:11px;}
 
 /* Insights */
 .insight-card h3{margin-bottom:12px;}

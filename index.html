@@ -166,11 +166,23 @@
     </div>
     <div class="hint">Auto follows your phone's setting. Saved on this phone only.</div>
 
+    <div class="section-label stores-label">Store suggestions</div>
+    <button type="button" class="secondary-btn" id="openStores">Manage store suggestions</button>
+
     <div class="section-label household-label">Household</div>
     <div class="household-card" id="householdInfo"></div>
     <button type="button" class="secondary-btn" id="openPassword">Change password</button>
     <button type="button" class="delete-btn" id="signOutBtn">Sign out</button>
   </form>
+</div>
+
+<div class="sheet-backdrop" id="storesBackdrop">
+  <div class="sheet tall">
+    <div class="grabber"></div>
+    <div class="sheet-head"><h2>Store suggestions</h2><button type="button" class="sheet-close" data-close aria-label="Close">✕</button></div>
+    <p class="sheet-text">As you type a store name, stores you’ve used at least twice, or in the last 30 days, are suggested. Hiding a store only stops the suggestion; its expenses and Insights don’t change.</p>
+    <div id="storesList"></div>
+  </div>
 </div>
 
 <div class="sheet-backdrop" id="passwordBackdrop">

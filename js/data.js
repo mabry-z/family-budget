@@ -124,7 +124,22 @@ export async function loadCarryStart() {
 
 // Every store name ever entered, for suggestions in the expense sheet.
 export function loadMerchantHistory() {
-  return selectAll('expenses', 'id, merchant, category, category_id', q => q.not('merchant', 'is', null));
+  return selectAll('expenses', 'id, merchant, category, category_id, created_at', q => q.not('merchant', 'is', null));
+}
+
+// Stores hidden from suggestions, as merchantKey()s (see migration 006).
+export async function loadHiddenMerchants() {
+  const rows = await run(supabase.from('hidden_merchants').select('merchant_key'));
+  return rows.map(r => r.merchant_key);
+}
+
+export function hideMerchant(key) {
+  return run(supabase.from('hidden_merchants')
+    .upsert([{ merchant_key: key }], { onConflict: 'household_id,merchant_key', ignoreDuplicates: true }));
+}
+
+export function unhideMerchant(key) {
+  return run(supabase.from('hidden_merchants').delete().eq('merchant_key', key));
 }
 
 export function addExpense(row) {

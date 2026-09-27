@@ -22,8 +22,8 @@ Static HTML/CSS/JS (ES modules, no build step) served by GitHub Pages from
   (Auto / Light / Dark, default Dark) kept in localStorage.
 - `js/app.js` — sign-in gate, state, loading, period navigation, tabs, wiring.
 - `js/ui/*.js` — one module per screen/sheet (overview, bills, insights,
-  summary, expense-sheet, settings-sheet, payday-sheet, sign-in, household,
-  appearance)
+  summary, expense-sheet, settings-sheet, stores-sheet, payday-sheet,
+  sign-in, household, appearance)
   plus `dom.js` helpers.
 - `supabase/migrations/NNN_*.sql` — run by hand, in order (see Workflow).
 - `dev/serve.ps1` — local static server (http://localhost:8000).
@@ -58,6 +58,8 @@ Static HTML/CSS/JS (ES modules, no build step) served by GitHub Pages from
 - `expenses` — `category_id` plus legacy `category` text (a trigger keeps
   `category_id` in step when only the name is written). `card` must be one
   of the values in the `expenses_card_check` constraint (see migration 002).
+- `hidden_merchants` — stores hidden from the expense sheet's suggestions
+  (`merchant_key` = `merchantKey()` in `js/merchants.js`). Migration 006.
 - `period_extra_carry` (view) — Extra carried into each period.
 - Functions: `ensure_period` (creates a period from defaults the first time
   it's opened), `save_settings`, `start_period`.
@@ -87,6 +89,9 @@ Static HTML/CSS/JS (ES modules, no build step) served by GitHub Pages from
   from `buildBudget`, so they always match the Overview. The scorecard
   judges each category against its **original** amount (emptied ones too);
   "within $10" and not over = amber.
+- Store suggestions: a store is suggested once used twice, or used in the
+  last 30 days; hidden stores never are. Hiding only affects suggestions
+  (never expenses or Insights). Manage in Settings → Store suggestions.
 - Header: C monogram + tab name ("Cadence" on Overview) in the wordmark
   font; the period bar is hidden on Insights.
 - Cards: Chase, AMEX, Star Card (label "Star"), USAA, Other. Adding one means
@@ -102,7 +107,7 @@ Static HTML/CSS/JS (ES modules, no build step) served by GitHub Pages from
   testing — the owner tests anything that writes. Browsing to a period that
   doesn't exist yet creates it, so stay on existing periods.
 - **Migrations are run by the owner** in the Supabase SQL editor. Write them
-  to `supabase/migrations/NNN_name.sql` (next number: **006**), make them
+  to `supabase/migrations/NNN_name.sql` (next number: **007**), make them
   safe to re-run, put the file on the clipboard
   (`Get-Content -Raw <file> | Set-Clipboard`) and give short click-by-click
   steps. Use "Run and enable RLS" if Supabase asks.
