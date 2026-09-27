@@ -54,19 +54,34 @@ function actionHtml(card) {
   return '';
 }
 
+const newestFirst = (a, b) => new Date(b.created_at) - new Date(a.created_at);
+
+// "$180 left" over a small "of $300", or "$20 over" (red) over "$300 budget".
+function numsHtml(card) {
+  const left = card.budget - card.spent;
+  const budget = `<span${card.budget < 0 ? ' class="negative"' : ''}>${money(card.budget)}</span>`;
+  return left < 0
+    ? `<b class="negative">${money(-left)} over</b><small>${budget} budget</small>`
+    : `<b>${money(left)} left</b><small>of ${budget}</small>`;
+}
+
+// First line of an expanded card.
+function detailHtml(card) {
+  return `<div class="cat-detail">Spent ${money(card.spent)}</div>`;
+}
+
 function cardHtml(card) {
   const rows = card.expenses.length
-    ? card.expenses.map(e => expenseRowHtml(e, `${shortDate(e.created_at)} · ${e.card}`)).join('')
+    ? [...card.expenses].sort(newestFirst).map(e => expenseRowHtml(e, `${shortDate(e.created_at)} · ${e.card}`)).join('')
     : '<div class="empty">No expenses yet.</div>';
-  const overBudget = card.budget < 0 ? ' negative' : '';
   return `<div class="cat-card${card.id === expandedId ? ' expanded' : ''}" data-cat="${card.id}">
     <div class="cat-top">
       <div class="cat-name-row"><span class="chevron">›</span><span class="cat-dot" style="background:${esc(card.color)};"></span><div class="cat-name">${esc(card.name)}</div></div>
-      <div class="cat-nums"><b>${money(card.spent)}</b> / <span class="${overBudget}">${money(card.budget)}</span></div>
+      <div class="cat-nums">${numsHtml(card)}</div>
     </div>
     <div class="bar-track"><div class="bar-fill ${card.bar.cls}" style="width:${card.bar.pct}%"></div></div>
     ${noteHtml(card)}
-    <div class="expense-list">${card.isExtra ? actionHtml(card) + rows : rows + actionHtml(card)}</div>
+    <div class="expense-list">${detailHtml(card)}${card.isExtra ? actionHtml(card) + rows : rows + actionHtml(card)}</div>
   </div>`;
 }
 
@@ -122,7 +137,7 @@ export function renderOverview(budget, expenses) {
 
   const nameById = new Map(budget.cards.map(c => [c.id, c.name]));
   const recent = [...expenses]
-    .sort((a, b) => new Date(b.created_at) - new Date(a.created_at))
+    .sort(newestFirst)
     .slice(0, 5);
 
   recentEl.innerHTML = recent.length
