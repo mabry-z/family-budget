@@ -14,6 +14,7 @@
   --bar-bg:rgba(255,255,255,0.08); --sq-none:rgba(255,255,255,0.04); --dot-ring:rgba(10,12,16,0.55);
   --danger-line:rgba(217,120,98,0.45); --ok-line:rgba(91,199,166,0.5);
   --toast-bad:rgba(40,22,20,0.94); --toast-ok:rgba(18,40,34,0.94);
+  --sheet-fade:rgba(22,26,33,0.96);
 }
 :root[data-theme="light"]{
   color-scheme:light;
@@ -29,6 +30,7 @@
   --bar-bg:rgba(70,50,30,0.10); --sq-none:rgba(70,50,30,0.07); --dot-ring:rgba(255,255,255,0.85);
   --danger-line:rgba(196,81,58,0.45); --ok-line:rgba(30,150,116,0.45);
   --toast-bad:rgba(251,233,228,0.97); --toast-ok:rgba(226,243,236,0.97);
+  --sheet-fade:rgba(240,234,225,0.98);
 }
 *{box-sizing:border-box; -webkit-tap-highlight-color:transparent;}
 html{height:100%;}
@@ -257,7 +259,7 @@ body.gated > header, body.gated > main, body.gated > .fab, body.gated > .tabbar{
   box-shadow:var(--card-shadow);
 }
 .gate-card h2{font-size:17px; font-weight:500; margin:0 0 18px;}
-.gate-card input{font-size:16px;} /* 16px+ stops iPhones zooming in on focus */
+.gate-card input{font-size:16px;}
 .gate-hint{text-align:center; line-height:1.45; font-size:12px;}
 .link-btn{display:block; margin:14px auto 0; background:none; border:none; color:var(--accent); font-size:13.5px; padding:4px 8px;}
 input[type=email], input[type=password]{width:100%; padding:12px 14px; border-radius:12px; border:1px solid var(--glass-border); font-size:14.5px; background:var(--glass); color:var(--ink);}
@@ -348,3 +350,25 @@ header.no-period .title-row{margin-bottom:0;}
 .summary-row.total{border-top:1px solid var(--glass-border); font-weight:500;}
 .summary-row.short span:last-child{color:var(--danger);}
 .summary-row.zero, .summary-row.zero span:last-child{color:var(--ink-faint); font-weight:400;}
+
+/* Feel like an app: no zooming, no sideways drift. iPhones zoom in on any
+   text box under 16px and stay zoomed, so every box is 16px; double-tap
+   zoom is off; sheets never scroll sideways or drag the page behind them. */
+html{touch-action:manipulation; overflow-x:hidden;}
+input, select, textarea{font-size:16px !important;}
+.sheet{overflow-x:hidden; overscroll-behavior:contain;}
+
+/* Sheets: a soft fade at the bottom while there's more below (see
+   openSheet in dom.js). On computers, sheets and open cards scroll with no
+   visible bar so the glass keeps its shape; phones keep their own
+   indicator, which only shows while scrolling. */
+.sheet-fade{
+  position:sticky; bottom:calc(-24px - env(safe-area-inset-bottom,0px)); height:56px; margin-top:-56px;
+  margin-inline:-20px; pointer-events:none; opacity:0; transition:opacity .2s ease;
+  background:linear-gradient(to bottom, transparent, var(--sheet-fade));
+}
+.sheet.more-below .sheet-fade{opacity:1;}
+@media (hover:hover) and (pointer:fine){
+  .sheet, .cat-card .expense-list{scrollbar-width:none;}
+  .sheet::-webkit-scrollbar, .cat-card .expense-list::-webkit-scrollbar{display:none;}
+}

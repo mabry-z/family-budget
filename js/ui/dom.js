@@ -25,8 +25,30 @@ export function showFormError(el, message) {
   el.hidden = !message;
 }
 
+// A soft fade at the bottom of a sheet while there's more to scroll to.
+function updateFade(sheet) {
+  sheet.classList.toggle('more-below', sheet.scrollHeight - sheet.scrollTop - sheet.clientHeight > 4);
+}
+
+function addFade(sheet) {
+  if (sheet.querySelector(':scope > .sheet-fade')) return;
+  const fade = document.createElement('div');
+  fade.className = 'sheet-fade';
+  sheet.append(fade);
+  const update = () => requestAnimationFrame(() => updateFade(sheet));
+  sheet.addEventListener('scroll', update, { passive: true });
+  new ResizeObserver(update).observe(sheet);
+  new MutationObserver(update).observe(sheet, { childList: true, subtree: true }); // rows added/removed
+}
+
 // Bottom sheets: open/close, backdrop tap, ✕ button, Escape key.
 export function openSheet(backdrop) {
+  const sheet = backdrop.querySelector('.sheet');
+  if (sheet) {
+    addFade(sheet);
+    sheet.append(sheet.querySelector(':scope > .sheet-fade')); // keep it last
+    requestAnimationFrame(() => updateFade(sheet));
+  }
   backdrop.classList.add('open');
 }
 
