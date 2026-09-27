@@ -7,6 +7,8 @@ Static HTML/CSS/JS (ES modules, no build step) served by GitHub Pages from
 ## Files
 
 - `index.html` — markup and empty containers; all content is rendered by JS.
+- `manifest.json`, `icons/` — home-screen name and icon (the C monogram;
+  PNGs drawn with a PowerShell System.Drawing script, no image tools here).
 - `css/cadence.css` — colour tokens for dark (`:root`) and light
   (`:root[data-theme="light"]`), the Cadence design, then "App additions".
   Use tokens only — no colour literals outside those two blocks.
