@@ -189,10 +189,31 @@ function askAboutPayday() {
 
 const REFRESH_MIN_GAP_MS = 5000;
 
+// Coming back resumes the paused page, so new code would only arrive on a
+// full reload. GitHub Pages stamps every file with the deploy time; when the
+// stamp changes, reload to pick up the update. (The local server sends no
+// stamp, so this never fires there.)
+async function fetchDeployStamp() {
+  try {
+    const res = await fetch('./', { method: 'HEAD', cache: 'no-store' });
+    return res.headers.get('last-modified') || res.headers.get('etag');
+  } catch {
+    return null; // offline
+  }
+}
+let deployStamp = null;
+fetchDeployStamp().then(stamp => { deployStamp = stamp; });
+
 async function refreshOnReturn() {
   if (!state.budget || Date.now() - lastLoadedAt < REFRESH_MIN_GAP_MS) return;
   if (document.querySelector('.sheet-backdrop.open')) return; // don't disturb a sheet in progress
   lastLoadedAt = Date.now();
+
+  const stamp = await fetchDeployStamp();
+  if (stamp && deployStamp && stamp !== deployStamp) {
+    window.location.reload();
+    return;
+  }
 
   // Someone may have started a new period (or the date moved on); follow
   // along if we were looking at the current one.
