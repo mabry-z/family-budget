@@ -78,6 +78,7 @@ function wireDragToClose(backdrop, sheet) {
   let startY = 0;
   let dragging = false;
   let deltaY = 0;
+  let mayDrag = false;
 
   sheet.addEventListener('pointerdown', e => {
     if (!e.isPrimary || e.button > 0) return;
@@ -85,13 +86,20 @@ function wireDragToClose(backdrop, sheet) {
     startY = e.clientY;
     dragging = false;
     deltaY = 0;
+    // Decide right now, before the browser's own touch scrolling can kick
+    // in and nudge scrollTop off 0 mid-gesture — checking later (once the
+    // drag is already under way) loses that race on a real phone. Locking
+    // touch-action here only when already at the top costs nothing: there's
+    // nothing further up to scroll to anyway.
+    mayDrag = sheet.scrollTop <= 1;
+    sheet.style.touchAction = mayDrag ? 'none' : '';
   });
 
   sheet.addEventListener('pointermove', e => {
     if (e.pointerId !== pointerId) return;
     const dy = e.clientY - startY;
     if (!dragging) {
-      if (dy > 8 && sheet.scrollTop <= 0) {
+      if (mayDrag && dy > 8) {
         dragging = true;
         sheet.setPointerCapture(pointerId);
         sheet.style.transition = 'none';
@@ -107,6 +115,7 @@ function wireDragToClose(backdrop, sheet) {
   const release = e => {
     if (e.pointerId !== pointerId) return;
     pointerId = null;
+    sheet.style.touchAction = '';
     if (!dragging) return;
     dragging = false;
     sheet.style.transition = '';
