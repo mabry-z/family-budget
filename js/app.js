@@ -1,6 +1,6 @@
 import * as db from './data.js';
 import * as auth from './auth.js';
-import { CARDS } from './config.js';
+import { CARDS, AUTHOR_COLORS } from './config.js';
 import {
   periodForDate, shiftPeriod, samePeriod, periodStartISO, buildBudget, cardTotals, snapshotCategories,
 } from './budget.js';
@@ -36,6 +36,7 @@ const state = {
   expenses: [],
   budget: null,
   merchants: new Map(),  // every store entered, for suggestions (see merchants.js)
+  authorColors: new Map(), // user_id → dot colour for "who added this" (see enterApp)
   hiddenMerchants: new Set(), // stores hidden from suggestions (merchantKey()s)
   activeScreen: 'overview',
 };
@@ -133,7 +134,7 @@ function render() {
     expenses: state.expenses,
     categoryIdOf,
   });
-  renderOverview(state.budget, state.expenses);
+  renderOverview(state.budget, state.expenses, state.authorColors);
   renderBills(state.fixedCosts);
   renderSummary(state.budget, cardTotals(state.expenses, CARDS), {
     fixedCosts: state.fixedCosts,
@@ -477,6 +478,11 @@ async function enterApp(session) {
     showToast(`Couldn't load your household: ${errorMessage(err)}`);
   }
   renderHousehold(household, session.user.email);
+  state.authorColors = new Map(
+    (household?.members ?? [])
+      .filter(m => m.user_id)
+      .map(m => [m.user_id, AUTHOR_COLORS[m.role] ?? AUTHOR_COLORS.member])
+  );
   hideGate();
 
   try {

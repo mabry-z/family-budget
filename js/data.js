@@ -77,7 +77,7 @@ export function loadFixedCosts(period) {
 export function loadExpenses(period) {
   return run(inPeriod(
     supabase.from('expenses')
-      .select('id, category, category_id, merchant, amount, card, transaction_type, created_at'),
+      .select('id, category, category_id, merchant, amount, card, transaction_type, created_at, created_by'),
     period
   ).order('created_at'));
 }

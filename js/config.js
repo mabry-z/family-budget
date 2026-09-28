@@ -18,3 +18,7 @@ export const CATEGORY_COLORS = [
   '#7CA3F2', '#E9A6D0', '#F2A65C', '#5BC7A6',
   '#B69CF2', '#F2D56B', '#6BD0E0', '#E07A7A',
 ];
+
+// The dot next to a merchant name showing who added that expense, by
+// household role (see household_info() in migration 007).
+export const AUTHOR_COLORS = { owner: '#7CA3F2', member: '#E39BB0' };

@@ -7,6 +7,7 @@ const recentEl = document.getElementById('recentList');
 let expandedId = null;
 let expensesById = new Map();
 let sweepable = []; // categories with money left that haven't been emptied
+let authorColors = new Map(); // user_id → dot colour; see renderOverview
 
 function shortDate(iso) {
   const d = new Date(iso);
@@ -19,9 +20,17 @@ function amountHtml(e) {
     : `<span>${money(e.amount)}</span>`;
 }
 
+// Who added it, as a small dot before the merchant name. Nothing for
+// expenses from before this was tracked (created_by is null) — no dot
+// rather than a guess.
+function authorDotHtml(e) {
+  const color = e.created_by ? authorColors.get(e.created_by) : null;
+  return color ? `<span class="author-dot" style="background:${esc(color)};"></span>` : '';
+}
+
 function expenseRowHtml(e, meta) {
   return `<div class="expense-row clickable" data-expense="${e.id}">`
-    + `<span class="merchant">${esc(e.merchant || 'Unknown')}</span>`
+    + `<span class="merchant">${authorDotHtml(e)}${esc(e.merchant || 'Unknown')}</span>`
     + `<span class="meta">${esc(meta)}</span>`
     + amountHtml(e)
     + `</div>`;
@@ -130,7 +139,9 @@ export function initOverview({ onEditExpense, onEmpty }) {
   });
 }
 
-export function renderOverview(budget, expenses) {
+// authorColors: Map<user_id, hexColor> — who gets which dot; see app.js.
+export function renderOverview(budget, expenses, colors = new Map()) {
+  authorColors = colors;
   expensesById = new Map(expenses.map(e => [String(e.id), e]));
   sweepable = budget.cards.filter(c => !c.isExtra && !c.emptied && c.leftover > 0);
   cardsEl.innerHTML = budget.cards.map(cardHtml).join('');
@@ -144,7 +155,7 @@ export function renderOverview(budget, expenses) {
     ? recent.map(e => {
         const catId = budget.bucketOf(e);
         return `<div class="expense-row clickable" data-cat="${catId}">`
-          + `<span class="merchant">${esc(e.merchant || 'Unknown')}</span>`
+          + `<span class="merchant">${authorDotHtml(e)}${esc(e.merchant || 'Unknown')}</span>`
           + `<span class="meta">${shortDate(e.created_at)} · ${esc(nameById.get(catId))}</span>`
           + amountHtml(e)
           + `</div>`;
