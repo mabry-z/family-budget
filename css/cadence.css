@@ -33,11 +33,11 @@
   --sheet-fade:rgba(240,234,225,0.98);
 }
 *{box-sizing:border-box; -webkit-tap-highlight-color:transparent;}
-html{height:100%;}
+html{height:100%; overscroll-behavior-y:none;}
 body{
   margin:0; font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,sans-serif;
   color:var(--ink); max-width:430px; margin-inline:auto; min-height:100%;
-  overflow-y:auto; -webkit-overflow-scrolling:touch;
+  overflow-y:auto; -webkit-overflow-scrolling:touch; overscroll-behavior-y:none;
   padding-bottom: calc(84px + env(safe-area-inset-bottom,0px));
   background:
     radial-gradient(600px 420px at 15% 0%, var(--wash-1), transparent 60%),
@@ -172,8 +172,8 @@ main{padding:18px 16px 8px;}
 }
 .sheet.tall{max-height:92vh;}
 .sheet-backdrop.open .sheet{transform:translateY(0);}
-.grabber{width:36px; height:4px; background:var(--glass-border); border-radius:3px; margin:6px auto 14px;}
-.sheet-head{display:flex; align-items:center; justify-content:space-between; margin-bottom:16px;}
+.grabber{width:36px; height:4px; background:var(--glass-border); border-radius:3px; margin:6px auto 14px; touch-action:none;}
+.sheet-head{display:flex; align-items:center; justify-content:space-between; margin-bottom:16px; touch-action:none;}
 .sheet h2{font-size:17px; font-weight:500; margin:0;}
 .sheet-close{background:var(--glass); border:1px solid var(--glass-border); color:var(--ink); width:30px; height:30px; border-radius:50%; font-size:14px;}
 .field{margin-bottom:16px;}

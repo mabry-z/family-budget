@@ -67,10 +67,14 @@ export function wireSheet(backdrop) {
   if (sheet) wireDragToClose(backdrop, sheet);
 }
 
-// Pull down anywhere in the sheet to close it — like scrolling to the top and
-// tapping ✕, but as one gesture. Only takes over once the sheet is scrolled
-// to the top and the drag is clearly downward, so ordinary scrolling and
-// tapping buttons/chips/inputs are unaffected.
+// Pull down to close: always works from the grabber/header (they never
+// scroll — see the static touch-action:none on .grabber/.sheet-head in
+// cadence.css — so there's no race to lose there), and as a best-effort
+// extra from anywhere else in the sheet once it's scrolled to the top.
+// That second path relies on switching touch-action off mid-gesture, which
+// not every browser honors for the gesture already in progress (Android
+// does; iOS Safari applies it only to the next touch) — the header is what
+// makes the gesture work everywhere.
 const CLOSE_DRAG_PX = 90;
 
 function wireDragToClose(backdrop, sheet) {
@@ -86,13 +90,9 @@ function wireDragToClose(backdrop, sheet) {
     startY = e.clientY;
     dragging = false;
     deltaY = 0;
-    // Decide right now, before the browser's own touch scrolling can kick
-    // in and nudge scrollTop off 0 mid-gesture — checking later (once the
-    // drag is already under way) loses that race on a real phone. Locking
-    // touch-action here only when already at the top costs nothing: there's
-    // nothing further up to scroll to anyway.
-    mayDrag = sheet.scrollTop <= 1;
-    sheet.style.touchAction = mayDrag ? 'none' : '';
+    const fromHandle = !!e.target.closest?.('.grabber, .sheet-head');
+    mayDrag = fromHandle || sheet.scrollTop <= 1;
+    if (!fromHandle) sheet.style.touchAction = mayDrag ? 'none' : '';
   });
 
   sheet.addEventListener('pointermove', e => {
