@@ -357,7 +357,11 @@ initInsights({
 });
 
 initExpenseSheet({
-  getCategoryChoices: () => state.budget.cards.map(c => ({ id: c.id, name: c.name })),
+  // Extra first: it's what most expenses go to, so new expenses default to it.
+  getCategoryChoices: () => [
+    ...state.budget.cards.filter(c => c.isExtra),
+    ...state.budget.cards.filter(c => !c.isExtra),
+  ].map(c => ({ id: c.id, name: c.name })),
   categoryIdOf: expense => state.budget.bucketOf(expense),
   suggestMerchants: (typed, categoryId) =>
     suggestMerchants(state.merchants, typed, categoryId, state.hiddenMerchants),

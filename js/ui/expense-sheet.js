@@ -133,7 +133,7 @@ export function openExpenseSheet(expense = null) {
 
   if (expense) {
     const catId = ctx.categoryIdOf(expense);
-    selectByValue(categoryChips, choices.some(c => c.id === catId) ? catId : choices.at(-1).id);
+    selectByValue(categoryChips, choices.some(c => c.id === catId) ? catId : choices[0].id); // Extra
     merchantInput.value = expense.merchant || '';
     selectByValue(typeChips, expense.transaction_type || 'expense');
     amountInput.value = expense.amount;

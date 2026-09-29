@@ -49,7 +49,7 @@ Static HTML/CSS/JS (ES modules, no build step) served by GitHub Pages from
   label (used for ordering and "this period onward"); `starts_on` is the real
   start (payday), null until confirmed; `starting_amount`.
 - `budget_defaults` — one row per household: default `starting_amount`
-  (3500 originally), `carry_start` (2026-10-01).
+  (3500 originally), `carry_start` (2026-09-16 — moved from the Oct 1 default so the Sep 15 period carries).
 - `categories` — defaults (`default_amount`, `color`, `sort_order`,
   `is_active` = archived when false). Exactly one row has
   `is_remainder = true`: **Extra**.
@@ -74,7 +74,7 @@ Static HTML/CSS/JS (ES modules, no build step) served by GitHub Pages from
   (effective) budgets + carry-in. An emptied category's budget is what it
   spent (clamped to 0..amount); the rest goes to that period's Extra.
 - Extra's leftover carries into the next period, **negative too**, from
-  `carry_start` (Oct 1, 2026) on. Calculated live, never stored.
+  `carry_start` (Sep 16, 2026 — the Sep 15 period) on. Calculated live, never stored.
 - Settings saved on the current or a future period change the defaults, that
   period and every later existing period — never earlier ones. Saved on a
   past period: only that period changes (category names locked there).
