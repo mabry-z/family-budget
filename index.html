@@ -59,6 +59,7 @@
 
 <main>
   <div class="screen active" id="screen-overview">
+    <div class="review-card" id="importsCard" hidden></div>
     <div class="cards" id="categoryCards"></div>
     <div class="summary-card" style="margin-top:14px;">
       <h3>Recent activity</h3>
@@ -99,9 +100,21 @@
   <form class="sheet" id="expenseForm" novalidate>
     <div class="grabber"></div>
     <div class="sheet-head"><h2 id="expenseTitle">Add expense</h2><button type="button" class="sheet-close" data-close aria-label="Close">✕</button></div>
+    <div class="import-note" id="importNote" hidden></div>
+    <div class="bill-match" id="billMatch" hidden></div>
+    <div class="or-purchase" id="orPurchase" hidden>Or add it as a purchase</div>
     <div class="field">
+      <label>Paid from</label>
+      <div class="toggle-row" id="paidFromChips">
+        <button type="button" class="chip selected" data-value="budget">Budget</button>
+        <button type="button" class="chip" data-value="savings">Savings</button>
+      </div>
+      <div class="hint" id="paidFromHint" hidden>Won’t count toward any category or Extra. It still shows in Recent activity.</div>
+    </div>
+    <div class="field" id="categoryField">
       <label>Category</label>
       <div class="chips" id="categoryChips"></div>
+      <div class="hint" id="categoryHint" hidden></div>
     </div>
     <div class="field">
       <label for="merchantInput">Merchant</label>
@@ -127,6 +140,7 @@
     <div class="form-error" id="expenseError" hidden></div>
     <button type="submit" class="save-btn" id="expenseSubmit">Add expense</button>
     <button type="button" class="delete-btn" id="expenseDelete" hidden>Delete expense</button>
+    <button type="button" class="secondary-btn" id="importDismiss" hidden>Ignore</button>
   </form>
 </div>
 

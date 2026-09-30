@@ -69,7 +69,8 @@ export function loadPeriodCategories(periodId) {
 
 export function loadFixedCosts(period) {
   return run(inPeriod(
-    supabase.from('fixed_costs').select('id, name, amount, is_paid, template_id'),
+    supabase.from('fixed_costs')
+      .select('id, name, amount, is_paid, template_id, paid_by_import_id, paid_import:card_imports(card, occurred_at)'),
     period
   ).order('name'));
 }
@@ -77,7 +78,7 @@ export function loadFixedCosts(period) {
 export function loadExpenses(period) {
   return run(inPeriod(
     supabase.from('expenses')
-      .select('id, category, category_id, merchant, amount, card, transaction_type, created_at, created_by'),
+      .select('id, category, category_id, merchant, amount, card, transaction_type, created_at, created_by, from_savings, card_import_id'),
     period
   ).order('created_at'));
 }
@@ -98,7 +99,7 @@ async function selectAll(table, columns, filter = q => q) {
 export function loadExpensesSince(year) {
   return selectAll('expenses',
     'id, year, month, period_start_day, category, category_id, merchant, amount, transaction_type, created_at',
-    q => q.gte('year', year));
+    q => q.gte('year', year).eq('from_savings', false)); // savings purchases never count
 }
 
 export function loadFixedCostsSince(year) {
@@ -159,8 +160,41 @@ export async function deleteExpense(id) {
   }
 }
 
+// ---------- Card alerts (migration 008) ----------
+
+// Purchases read from card alert emails, waiting to be reviewed, oldest first.
+export function loadPendingImports() {
+  return run(supabase.from('card_imports')
+    .select('id, card, account, last4, cardholder, cardholder_user_id, merchant, merchant_raw, amount_cents, occurred_at, unreadable')
+    .eq('status', 'pending')
+    .order('occurred_at'));
+}
+
+// Stores learned as bills (see matchBill in merchants.js).
+export function loadBillMerchants() {
+  return run(supabase.from('bill_merchants').select('merchant_key, template_id, bill_name'));
+}
+
+// Marks the bill paid with this period's amount set to what was charged,
+// settles the alert and remembers the store (migration 008).
+export function payBillFromImport(importId, fixedCostId, amount, merchantKey) {
+  return run(supabase.rpc('pay_bill_from_import', {
+    p_import_id: importId, p_fixed_cost_id: fixedCostId, p_amount: amount, p_merchant_key: merchantKey,
+  }));
+}
+
+// 'added' or 'dismissed'. Only moves a pending one, so two phones can't
+// both handle it; returns whether this call did.
+export async function settleImport(id, status) {
+  const rows = await run(supabase.from('card_imports')
+    .update({ status }).eq('id', id).eq('status', 'pending').select('id'));
+  return rows.length > 0;
+}
+
+// Unticking a bill also drops its "Paid by … alert" note.
 export function setFixedPaid(id, isPaid) {
-  return run(supabase.from('fixed_costs').update({ is_paid: isPaid }).eq('id', id));
+  const fields = isPaid ? { is_paid: true } : { is_paid: false, paid_by_import_id: null };
+  return run(supabase.from('fixed_costs').update(fields).eq('id', id));
 }
 
 export function saveSettings(args) {

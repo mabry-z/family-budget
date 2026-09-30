@@ -1,5 +1,13 @@
 import { money, sum } from '../budget.js';
 import { esc } from './dom.js';
+import { cardInfo, whenLabel } from './imports.js';
+
+// "Paid by Chase alert · today 5:01 PM" under a bill a card alert paid.
+function paidNote(f) {
+  if (!f.is_paid || !f.paid_import) return '';
+  const label = cardInfo(f.paid_import.card).label;
+  return `<div class="bill-note">Paid by ${esc(label)} alert · ${esc(whenLabel(f.paid_import.occurred_at, { withDay: true }))}</div>`;
+}
 
 const billsEl = document.getElementById('billsCard');
 
@@ -32,7 +40,7 @@ export function renderBills(fixedCosts) {
       <div class="bill-row${f.is_paid ? ' paid' : ''}">
         <button type="button" class="check${f.is_paid ? ' checked' : ''}" data-id="${f.id}"
           aria-label="Mark ${esc(f.name)} as ${f.is_paid ? 'unpaid' : 'paid'}">${f.is_paid ? '✓' : ''}</button>
-        <div class="bill-name">${esc(f.name)}</div>
+        <div class="bill-name"><div class="bill-title">${esc(f.name)}</div>${paidNote(f)}</div>
         <div class="bill-amt">${money(f.amount)}</div>
       </div>`).join('')}`;
 }

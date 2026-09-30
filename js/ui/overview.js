@@ -134,12 +134,19 @@ export function initOverview({ onEditExpense, onEmpty }) {
   });
 
   recentEl.addEventListener('click', e => {
+    const savings = e.target.closest('[data-expense]'); // savings rows have no category card
+    if (savings) {
+      onEditExpense(expensesById.get(savings.dataset.expense));
+      return;
+    }
     const row = e.target.closest('[data-cat]');
     if (row) expandCategory(Number(row.dataset.cat), { scroll: true });
   });
 }
 
 // authorColors: Map<user_id, hexColor> — who gets which dot; see app.js.
+// expenses: all of the period's, savings purchases included (only Recent
+// activity shows those; the budget cards never count them).
 export function renderOverview(budget, expenses, colors = new Map()) {
   authorColors = colors;
   expensesById = new Map(expenses.map(e => [String(e.id), e]));
@@ -153,6 +160,13 @@ export function renderOverview(budget, expenses, colors = new Map()) {
 
   recentEl.innerHTML = recent.length
     ? recent.map(e => {
+        if (e.from_savings) {
+          return `<div class="expense-row clickable excluded" data-expense="${e.id}">`
+            + `<span class="merchant">${authorDotHtml(e)}${esc(e.merchant || 'Unknown')}<span class="savings-tag">Savings</span></span>`
+            + `<span class="meta">${shortDate(e.created_at)} · Not in budget</span>`
+            + amountHtml(e)
+            + `</div>`;
+        }
         const catId = budget.bucketOf(e);
         return `<div class="expense-row clickable" data-cat="${catId}">`
           + `<span class="merchant">${authorDotHtml(e)}${esc(e.merchant || 'Unknown')}</span>`

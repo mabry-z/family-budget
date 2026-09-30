@@ -72,6 +72,42 @@ export function merchantIndex(expenses, categoryIdOf) {
   return index;
 }
 
+// ---------- Bills paid on a card ----------
+
+const BILL_STOP_WORDS = new Set(['the', 'and', 'bill', 'bills', 'payment', 'pay', 'monthly', 'card', 'inc']);
+const words = s => merchantKey(s).split(/[^a-z0-9]+/).filter(Boolean);
+
+// Which of a period's unpaid bills a card purchase is, or null. In order:
+// a store already linked to a bill (bill_merchants rows), then a bill whose
+// name starts a word of the store ("TKS Internet" ↔ "Tkscable") at a
+// similar amount, then the only bill with exactly this amount. Always
+// confirmed by a person.
+// → { bill, learned } | null
+export function matchBill(merchant, dollars, bills, learned = []) {
+  const key = merchantKey(merchant);
+  const unpaid = bills.filter(b => !b.is_paid);
+  if (!key || !unpaid.length) return null;
+
+  const link = learned.find(l => l.merchant_key === key);
+  if (link) {
+    const bill = unpaid.find(b => link.template_id != null && b.template_id === link.template_id)
+      ?? unpaid.find(b => merchantKey(b.name) === merchantKey(link.bill_name));
+    if (bill) return { bill, learned: true };
+  }
+
+  // A name match also needs a similar amount, so a $12 car wash isn't
+  // offered as the $390 Car bill.
+  const storeWords = words(merchant);
+  const near = b => Math.abs(dollars - Number(b.amount)) <= Math.max(5, Number(b.amount) * 0.25);
+  const byName = unpaid.filter(b => near(b) && words(b.name).some(w =>
+    w.length >= 3 && !BILL_STOP_WORDS.has(w) && storeWords.some(sw => sw.startsWith(w))));
+  if (byName.length === 1) return { bill: byName[0], learned: false };
+
+  const byAmount = unpaid.filter(b => Math.round(Number(b.amount)) === dollars);
+  if (byAmount.length === 1) return { bill: byAmount[0], learned: false };
+  return null;
+}
+
 // A one-off store drops out of suggestions this long after it was used.
 export const ONE_OFF_DAYS = 30;
 

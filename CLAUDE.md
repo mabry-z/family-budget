@@ -25,12 +25,17 @@ Static HTML/CSS/JS (ES modules, no build step) served by GitHub Pages from
 - `js/app.js` — sign-in gate, state, loading, period navigation, tabs, wiring.
 - `js/ui/*.js` — one module per screen/sheet (overview, bills, insights,
   summary, expense-sheet, settings-sheet, stores-sheet, payday-sheet,
-  sign-in, household, appearance)
+  sign-in, household, appearance, imports)
   plus `dom.js` helpers.
 - `supabase/migrations/NNN_*.sql` — run by hand, in order (see Workflow).
 - `dev/serve.ps1` — local static server (http://localhost:8000).
 - `docs/households-plan.md` — plan and rollout for accounts + households.
 - `docs/insights-plan.md` — the Insights tab (replaced Trends) and its rules.
+- `docs/card-imports-plan.md` — card alert emails → Cadence, "Paid from
+  savings", and the one-time setup steps.
+- `gmail-script/cadence-alerts.gs` — Google Apps Script (runs in the owner's
+  Google account, pasted in by hand) that reads card alert emails;
+  `test-readers.cjs` tests its readers (needs Node).
 
 ## Data model (Supabase, schema `public`)
 
@@ -62,7 +67,20 @@ Static HTML/CSS/JS (ES modules, no build step) served by GitHub Pages from
   of the values in the `expenses_card_check` constraint (see migration 002).
 - `hidden_merchants` — stores hidden from the expense sheet's suggestions
   (`merchant_key` = `merchantKey()` in `js/merchants.js`). Migration 006.
-- `period_extra_carry` (view) — Extra carried into each period.
+- `card_imports` — purchases read from card alert emails; `status`
+  pending | added | dismissed (Ignore) | bill. Written only by `import_card_alert(p_key,
+  p_alert)` (anon may call it; it needs the household's import key, kept
+  hashed in `card_import_keys`; `new_card_import_key()` is for the SQL
+  editor only). `household_members.cardholder_name` maps the name on an
+  alert to a person. Migration 008.
+- Bills paid on a card: `pay_bill_from_import()` ticks the bill, sets that
+  period's `fixed_costs.amount` to the charge, sets `paid_by_import_id`
+  and remembers the store in `bill_merchants` (→ template, or bill name).
+  Matching is `matchBill()` in `js/merchants.js`.
+- `expenses.from_savings` — paid from savings: shown, never counted.
+  `expenses.card_import_id` — the alert it came from (unique).
+- `period_extra_carry` (view) — Extra carried into each period (ignores
+  savings purchases).
 - Functions: `ensure_period` (creates a period from defaults the first time
   it's opened), `save_settings`, `start_period`.
 - `budget_settings` is the old app's table — no longer used.
@@ -96,6 +114,11 @@ Static HTML/CSS/JS (ES modules, no build step) served by GitHub Pages from
   (never expenses or Insights). Manage in Settings → Store suggestions.
 - Header: C monogram + tab name ("Cadence" on Overview) in the wordmark
   font; the period bar is hidden on Insights.
+- **Savings purchases never count**: not in category cards, Extra,
+  carry-over, "Spent so far" or Insights. They do show in Recent activity,
+  Summary ("Paid from savings · not counted") and Card spending.
+- Card alert purchases count only once reviewed and added; they go into the
+  period the purchase happened in, with the cardholder's dot.
 - Cards: Chase, AMEX, Star Card (label "Star"), USAA, Other. Adding one means
   updating `js/config.js` and the `expenses_card_check` constraint.
 
@@ -109,7 +132,7 @@ Static HTML/CSS/JS (ES modules, no build step) served by GitHub Pages from
   testing — the owner tests anything that writes. Browsing to a period that
   doesn't exist yet creates it, so stay on existing periods.
 - **Migrations are run by the owner** in the Supabase SQL editor. Write them
-  to `supabase/migrations/NNN_name.sql` (next number: **007**), make them
+  to `supabase/migrations/NNN_name.sql` (next number: **009**), make them
   safe to re-run, put the file on the clipboard
   (`Get-Content -Raw <file> | Set-Clipboard`) and give short click-by-click
   steps. Use "Run and enable RLS" if Supabase asks.

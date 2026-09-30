@@ -2,7 +2,7 @@ import * as db from './data.js';
 import * as auth from './auth.js';
 import { CARDS, AUTHOR_COLORS } from './config.js';
 import {
-  periodForDate, shiftPeriod, samePeriod, periodStartISO, buildBudget, cardTotals, snapshotCategories,
+  periodForDate, shiftPeriod, samePeriod, periodStartISO, buildBudget, cardTotals, snapshotCategories, signedAmount,
 } from './budget.js';
 import { merchantIndex, suggestMerchants, isSuggested } from './merchants.js';
 import { today, toISO, fromISO, addDays, rangeLabel, expectedPayday } from './paydays.js';
@@ -18,6 +18,8 @@ import { initSignIn, showSignIn, showNoHousehold, hideGate } from './ui/sign-in.
 import { initHousehold, renderHousehold } from './ui/household.js';
 import { initAppearance } from './ui/appearance.js';
 import { initStoresSheet } from './ui/stores-sheet.js';
+import { initImports, renderImports, importDollars } from './ui/imports.js';
+import { merchantKey, matchBill } from './merchants.js';
 
 // Start asking about the next paycheck this many days before its expected
 // date — the bank usually deposits a day or two early.
@@ -38,6 +40,7 @@ const state = {
   merchants: new Map(),  // every store entered, for suggestions (see merchants.js)
   authorColors: new Map(), // user_id → dot colour for "who added this" (see enterApp)
   hiddenMerchants: new Set(), // stores hidden from suggestions (merchantKey()s)
+  imports: [],           // card alert purchases waiting for review (any period)
   activeScreen: 'overview',
 };
 
@@ -50,6 +53,9 @@ function categoryIdOf(expense) {
   const match = state.categories.find(c => c.name.toLowerCase() === name);
   return match ? match.id : state.extraCategory.id;
 }
+
+// Savings purchases are shown but never counted (migration 008).
+const budgetExpenses = expenses => expenses.filter(e => !e.from_savings);
 
 // ---------- Periods and their real dates ----------
 
@@ -72,6 +78,16 @@ function startOf(period) {
 
 function periodRangeLabel(period) {
   return rangeLabel(startOf(period), addDays(startOf(shiftPeriod(period, 1)), -1));
+}
+
+// The period a card purchase belongs to, by the day it happened (on this
+// phone's calendar): the latest period that had started by then.
+function periodOfMoment(iso) {
+  const d = new Date(iso);
+  const day = new Date(d.getFullYear(), d.getMonth(), d.getDate());
+  let period = currentPeriod();
+  for (let i = 0; i < 48 && startOf(period) > day; i++) period = shiftPeriod(period, -1);
+  return period;
 }
 
 // ---------- Loading ----------
@@ -109,6 +125,7 @@ async function loadAll({ quiet = false } = {}) {
     state.expenses = expenses;
     lastLoadedAt = Date.now();
     render();
+    loadImports();
   } catch (err) {
     if (token === loadToken) showToast(`Couldn't load this period: ${errorMessage(err)}`);
   } finally {
@@ -131,7 +148,7 @@ function render() {
     fixedCosts: state.fixedCosts,
     periodCategories: state.periodCategories,
     extraCategory: state.extraCategory,
-    expenses: state.expenses,
+    expenses: budgetExpenses(state.expenses),
     categoryIdOf,
   });
   renderOverview(state.budget, state.expenses, state.authorColors);
@@ -140,8 +157,51 @@ function render() {
     fixedCosts: state.fixedCosts,
     start: startOf(state.period),
     end: addDays(startOf(shiftPeriod(state.period, 1)), -1),
+    savings: state.expenses.filter(e => e.from_savings).reduce((n, e) => n + signedAmount(e), 0),
   });
   if (state.activeScreen === 'insights') renderInsights();
+}
+
+// Card alert purchases waiting for review. Quietly skipped if it fails
+// (e.g. before migration 008): the rest of the app doesn't need them.
+// Each one also gets .bill when it looks like one of its period's unpaid
+// bills (see matchBill) — the review sheet then offers to mark it paid.
+async function loadImports() {
+  try {
+    const [imports, learned] = await Promise.all([
+      db.loadPendingImports(),
+      db.loadBillMerchants().catch(() => []),
+    ]);
+    const billsByPeriod = new Map();
+    const billsFor = period => {
+      const key = periodStartISO(period);
+      if (!billsByPeriod.has(key)) {
+        billsByPeriod.set(key, samePeriod(period, state.period)
+          ? Promise.resolve(state.fixedCosts)
+          : db.loadFixedCosts(period).catch(() => []));
+      }
+      return billsByPeriod.get(key);
+    };
+    for (const imp of imports) {
+      if (imp.unreadable) continue;
+      const bills = await billsFor(periodOfMoment(imp.occurred_at));
+      imp.bill = matchBill(imp.merchant, importDollars(imp), bills, learned);
+    }
+    state.imports = imports;
+  } catch {
+    state.imports = [];
+  }
+  renderImports(state.imports, state.authorColors);
+}
+
+// The category a store went to most often, or null for a new store.
+function suggestCategory(merchant) {
+  const m = state.merchants.get(merchantKey(merchant));
+  if (!m) return null;
+  let best = null;
+  let bestCount = 0;
+  for (const [id, count] of m.byCategory) if (count > bestCount) { best = id; bestCount = count; }
+  return best;
 }
 
 // Store names for suggestions; refreshed after saves and on return.
@@ -366,12 +426,16 @@ initExpenseSheet({
   suggestMerchants: (typed, categoryId) =>
     suggestMerchants(state.merchants, typed, categoryId, state.hiddenMerchants),
   onHideMerchant: key => setMerchantHidden(key, true),
-  onSave: async ({ id, category_id, ...fields }) => {
+  suggestCategory,
+  authorColorOf: userId => (userId ? state.authorColors.get(userId) : null) ?? null,
+  onSave: async ({ id, importId, category_id, ...fields }) => {
     const category = state.categories.find(c => c.id === category_id);
     // Keep the text column filled in too, so the old app on main still reads these rows.
     const row = { ...fields, category_id, category: category.name };
     if (id != null) {
       await db.updateExpense(id, row);
+    } else if (importId != null) {
+      await addImported(importId, row);
     } else {
       const p = state.period;
       await db.addExpense({ ...row, year: p.year, month: p.month, period_start_day: p.startDay });
@@ -379,12 +443,49 @@ initExpenseSheet({
     await loadAll();
     loadMerchants();
   },
+  onPayBill: async (imp, dollars) => {
+    await db.payBillFromImport(imp.id, imp.bill.bill.id, dollars, merchantKey(imp.merchant));
+    await loadAll();
+    const period = periodOfMoment(imp.occurred_at);
+    const where = samePeriod(period, state.period) ? '' : ` (${periodRangeLabel(period)})`;
+    showToast(`${imp.bill.bill.name} marked paid${where}.`, { ok: true });
+  },
+  onDismissImport: async importId => {
+    await db.settleImport(importId, 'dismissed');
+    await loadImports();
+  },
   onDelete: async id => {
     await db.deleteExpense(id);
     await loadAll();
     loadMerchants();
   },
 });
+
+// A reviewed card purchase becomes a normal expense in the period it
+// happened in, with the dot of whoever's name was on the alert. The expense
+// remembers its alert, so a second phone adding it too is turned away.
+async function addImported(importId, row) {
+  const imp = state.imports.find(i => i.id === importId);
+  const period = periodOfMoment(imp.occurred_at);
+  await db.ensurePeriod(period);
+  try {
+    await db.addExpense({
+      ...row,
+      year: period.year, month: period.month, period_start_day: period.startDay,
+      card_import_id: importId,
+      ...(imp.cardholder_user_id ? { created_by: imp.cardholder_user_id } : {}),
+    });
+  } catch (err) {
+    if (err?.code !== '23505') throw err;
+    showToast('Already added from the other phone.', { ok: true });
+  }
+  await db.settleImport(importId, 'added');
+  if (!samePeriod(period, state.period)) {
+    showToast(`Added to ${periodRangeLabel(period)}.`, { ok: true });
+  }
+}
+
+initImports({ onReview: imp => openExpenseSheet(null, imp) });
 
 initSettingsSheet({
   getSnapshot: () => {

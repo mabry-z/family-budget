@@ -17,7 +17,8 @@ function timeNote(start, end) {
   return days === 1 ? 'Last day' : `${days} days left`;
 }
 
-// period: { fixedCosts, start, end } — the period's bills and real dates.
+// period: { fixedCosts, start, end, savings } — the period's bills, real dates,
+// and what was paid from savings (shown, never counted).
 export function renderSummary(budget, cardTotals, period) {
   const { toSpend, spent, left, carryIn } = budget;
   const bar = barFor(spent, toSpend, false);
@@ -39,7 +40,8 @@ export function renderSummary(budget, cardTotals, period) {
     ${row(`− Bills${billsNote}`, budget.fixedTotal)}
     ${row('= To spend this period', toSpend, 'total')}
     ${row('− Spent so far', spent)}
-    ${row('= Left', left, 'total')}`;
+    ${row('= Left', left, 'total')}
+    ${period.savings ? row('Paid from savings <span class="row-note">· not counted</span>', period.savings, 'zero') : ''}`;
 
   // Cards with spending first, most to least; the $0 ones after, in their usual order.
   const cards = [...cardTotals].sort((a, b) => (b.total !== 0) - (a.total !== 0) || b.total - a.total);

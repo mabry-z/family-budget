@@ -373,3 +373,45 @@ input, select, textarea{font-size:16px !important;}
   .sheet, .cat-card .expense-list{scrollbar-width:none;}
   .sheet::-webkit-scrollbar, .cat-card .expense-list::-webkit-scrollbar{display:none;}
 }
+
+/* Card alerts: purchases waiting for review (Overview) and the review sheet.
+   The card badge colour comes from CARDS in js/config.js, like the card chips. */
+.review-card{
+  background:var(--glass); border:1px solid var(--button-line); border-radius:20px; padding:14px 18px 12px; margin-bottom:12px;
+  backdrop-filter:blur(18px) saturate(150%); -webkit-backdrop-filter:blur(18px) saturate(150%);
+  box-shadow:var(--card-shadow);
+}
+.review-card[hidden]{display:none;}
+.review-head{display:flex; align-items:center; gap:10px;}
+.review-badge{width:26px; height:26px; border-radius:8px; flex-shrink:0; display:flex; align-items:center; justify-content:center; font-size:9.5px; font-weight:700; color:#fff;}
+.review-title{flex:1; font-weight:500; font-size:15px;}
+.review-hint{font-size:12.5px; color:var(--accent);}
+.review-row{display:grid; grid-template-columns:1.3fr 1fr auto auto; align-items:center; column-gap:10px; width:100%; padding:10px 0 0; margin-top:10px; border:none; border-top:1px solid var(--glass-border-soft); background:none; font:inherit; font-size:13px; color:var(--ink); text-align:left;}
+.review-row .merchant{min-width:0; overflow:hidden; text-overflow:ellipsis; white-space:nowrap;}
+.review-row .meta{color:var(--ink-faint); font-size:11.5px; text-align:center;}
+.review-row .amt{font-weight:500; text-align:right;}
+.review-row .go{color:var(--ink-faint); font-size:14px;}
+.review-row.unreadable .merchant{color:var(--warn);}
+.review-foot{font-size:11.5px; color:var(--ink-faint); margin-top:10px;}
+.import-note{display:flex; gap:10px; align-items:center; font-size:12.5px; line-height:1.45; color:var(--ink-soft); background:var(--accent-soft); border:1px solid var(--button-line); border-radius:12px; padding:10px 12px; margin-bottom:16px;}
+.import-note[hidden]{display:none;}
+.import-note b{color:var(--ink); font-weight:500;}
+.import-note .note-who{color:var(--ink);}
+.field.muted .chips{opacity:.35; pointer-events:none;}
+.expense-row.excluded .merchant, .expense-row.excluded > span:last-child{color:var(--ink-faint) !important; font-weight:400 !important;}
+.savings-tag{display:inline-block; font-size:10.5px; color:var(--ink-soft); border:1px solid var(--glass-border); border-radius:999px; padding:1px 7px; margin-left:6px; vertical-align:1px;}
+
+/* Bills paid on a card: the match on the review sheet, the note in Bills. */
+.bill-match{background:var(--glass); border:1px solid var(--ok-line); border-radius:14px; padding:14px; margin-bottom:18px;}
+.bill-match[hidden]{display:none;}
+.bill-match-head{display:flex; align-items:center; gap:12px;}
+.bill-match-head .check{border-color:var(--ok); color:var(--ok);}
+.bill-match-text{flex:1; font-size:13.5px; line-height:1.4; color:var(--ink-soft);}
+.bill-match-text b{color:var(--ink); font-weight:500; font-size:14.5px;}
+.bill-match .save-btn{margin-top:12px; border-color:var(--ok-line); background:transparent;}
+.bill-match .hint{text-align:center; margin-top:8px;}
+.or-purchase{font-size:13px; font-weight:500; color:var(--ink-soft); margin:0 0 12px;}
+.or-purchase[hidden]{display:none;}
+.bill-row.paid .bill-name{text-decoration:none;}
+.bill-row.paid .bill-title{text-decoration:line-through;}
+.bill-note{font-size:11.5px; color:var(--ink-faint); margin-top:2px;}
