@@ -20,6 +20,8 @@ import { initAppearance } from './ui/appearance.js';
 import { initStoresSheet } from './ui/stores-sheet.js';
 import { initImports, renderImports, importDollars } from './ui/imports.js';
 import { merchantKey, matchBill } from './merchants.js';
+import * as push from './notifications.js';
+import { initNotifications, refreshNotifications } from './ui/notifications.js';
 
 // Start asking about the next paycheck this many days before its expected
 // date — the bank usually deposits a day or two early.
@@ -487,6 +489,27 @@ async function addImported(importId, row) {
 
 initImports({ onReview: imp => openExpenseSheet(null, imp) });
 
+// A tapped notification (see sw.js): open that purchase for review, after
+// fetching the latest list, since it may have arrived after the app loaded.
+async function reviewImport(importId) {
+  if (!state.budget) return;
+  await loadImports();
+  const imp = state.imports.find(i => String(i.id) === String(importId));
+  if (imp) openExpenseSheet(null, imp);
+  else showToast('That purchase has already been reviewed.', { ok: true });
+}
+push.onReviewRequest(reviewImport);
+
+// Cadence opened by tapping a notification: ?review=<id>.
+function reviewFromLink() {
+  const url = new URL(window.location.href);
+  const id = url.searchParams.get('review');
+  if (!id) return;
+  url.searchParams.delete('review');
+  history.replaceState(null, '', url.pathname + url.search + url.hash);
+  reviewImport(id);
+}
+
 initSettingsSheet({
   getSnapshot: () => {
     const expenseCountByCategory = new Map();
@@ -533,9 +556,11 @@ document.getElementById('openExpense').addEventListener('click', () => {
 });
 document.getElementById('openSettings').addEventListener('click', () => {
   if (state.budget) openSettingsSheet();
+  refreshNotifications(); // permission may have changed in the phone's Settings
 });
 
 initAppearance();
+initNotifications();
 
 initStoresSheet({
   getStores: storeLists,
@@ -563,6 +588,7 @@ initSignIn({
 
 async function signOut() {
   try {
+    await push.forgetThisPhone();
     await auth.signOut();
   } catch (err) {
     showToast(`Couldn't sign out: ${errorMessage(err)}`);
@@ -599,9 +625,12 @@ async function enterApp(session) {
   await loadAll();
   loadMerchants();
   askAboutPayday();
+  push.resync();
+  reviewFromLink();
 }
 
 (async function start() {
+  push.registerWorker();
   let session = null;
   try {
     session = await auth.getSession();

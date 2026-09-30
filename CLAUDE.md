@@ -18,6 +18,9 @@ Static HTML/CSS/JS (ES modules, no build step) served by GitHub Pages from
 - `js/paydays.js` — pure date helpers, federal holidays, payday rule.
 - `js/merchants.js` — pure store-name grouping (Insights) and suggestions
   (expense sheet).
+- `js/notifications.js` — phone notifications: permission, subscribe,
+  test (with `sw.js`, the service worker at the root: push + tap only, no
+  caching).
 - `js/auth.js` — Supabase Auth: session, sign in/out, change password.
 - `js/theme.js` — light/dark: a plain script in `<head>` (runs before the
   page draws) that sets `<html data-theme>` from this phone's choice
@@ -25,7 +28,7 @@ Static HTML/CSS/JS (ES modules, no build step) served by GitHub Pages from
 - `js/app.js` — sign-in gate, state, loading, period navigation, tabs, wiring.
 - `js/ui/*.js` — one module per screen/sheet (overview, bills, insights,
   summary, expense-sheet, settings-sheet, stores-sheet, payday-sheet,
-  sign-in, household, appearance, imports)
+  sign-in, household, appearance, imports, notifications)
   plus `dom.js` helpers.
 - `supabase/migrations/NNN_*.sql` — run by hand, in order (see Workflow).
 - `dev/serve.ps1` — local static server (http://localhost:8000).
@@ -33,6 +36,10 @@ Static HTML/CSS/JS (ES modules, no build step) served by GitHub Pages from
 - `docs/insights-plan.md` — the Insights tab (replaced Trends) and its rules.
 - `docs/card-imports-plan.md` — card alert emails → Cadence, "Paid from
   savings", and the one-time setup steps.
+- `docs/notifications-plan.md` — card purchase notifications and setup.
+- `supabase/functions/notify-purchase/index.ts` — Edge Function that sends
+  them; pasted into the dashboard by hand (Verify JWT off; secrets
+  `VAPID_PUBLIC_KEY`, `VAPID_PRIVATE_KEY`).
 - `gmail-script/cadence-alerts.gs` — Google Apps Script (runs in the owner's
   Google account, pasted in by hand) that reads card alert emails;
   `test-readers.cjs` tests its readers (needs Node).
@@ -79,6 +86,9 @@ Static HTML/CSS/JS (ES modules, no build step) served by GitHub Pages from
   Matching is `matchBill()` in `js/merchants.js`.
 - `expenses.from_savings` — paid from savings: shown, never counted.
   `expenses.card_import_id` — the alert it came from (unique).
+- `push_subscriptions` — phones with notifications on (own rows only).
+  `card_imports.notified_at` — announced once. A trigger on `card_imports`
+  calls notify-purchase via `pg_net`. Migration 009.
 - `period_extra_carry` (view) — Extra carried into each period (ignores
   savings purchases).
 - Functions: `ensure_period` (creates a period from defaults the first time
@@ -119,6 +129,8 @@ Static HTML/CSS/JS (ES modules, no build step) served by GitHub Pages from
   Summary ("Paid from savings · not counted") and Card spending.
 - Card alert purchases count only once reviewed and added; they go into the
   period the purchase happened in, with the cardholder's dot.
+- Notifications: every phone that turned them on gets every card purchase,
+  once ("Target · $42" / "Chase · Tap to review"); tapping opens its review.
 - Cards: Chase, AMEX, Star Card (label "Star"), USAA, Other. Adding one means
   updating `js/config.js` and the `expenses_card_check` constraint.
 
@@ -132,7 +144,7 @@ Static HTML/CSS/JS (ES modules, no build step) served by GitHub Pages from
   testing — the owner tests anything that writes. Browsing to a period that
   doesn't exist yet creates it, so stay on existing periods.
 - **Migrations are run by the owner** in the Supabase SQL editor. Write them
-  to `supabase/migrations/NNN_name.sql` (next number: **009**), make them
+  to `supabase/migrations/NNN_name.sql` (next number: **010**), make them
   safe to re-run, put the file on the clipboard
   (`Get-Content -Raw <file> | Set-Clipboard`) and give short click-by-click
   steps. Use "Run and enable RLS" if Supabase asks.

@@ -22,3 +22,8 @@ export const CATEGORY_COLORS = [
 // The dot next to a merchant name showing who added that expense, by
 // household role (see household_info() in migration 007).
 export const AUTHOR_COLORS = { owner: '#7CA3F2', member: '#E39BB0' };
+
+// Public half of the key phone notifications are signed with (see
+// docs/notifications-plan.md). The private half is only in Supabase, as the
+// notify-purchase function's VAPID_PRIVATE_KEY secret.
+export const VAPID_PUBLIC_KEY = 'BJ0yJDkAqfyiHCjHzza4c9gAdPaYXPkHsBSmm3_uQAGlD-s-tMJeycTPjxYQLfB4sQzHlX4u8iJcPkG6wm2CJgM';

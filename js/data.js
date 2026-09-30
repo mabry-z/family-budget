@@ -191,6 +191,31 @@ export async function settleImport(id, status) {
   return rows.length > 0;
 }
 
+// ---------- Phone notifications (migration 009) ----------
+
+// Remembers this phone so new card purchases are sent to it. Upsert, so
+// re-saving the same phone (e.g. every time the app opens) is harmless.
+export function savePushSubscription({ endpoint, p256dh, auth }) {
+  return run(supabase.from('push_subscriptions')
+    .upsert({ endpoint, p256dh, auth }, { onConflict: 'endpoint' }));
+}
+
+export function deletePushSubscription(endpoint) {
+  return run(supabase.from('push_subscriptions').delete().eq('endpoint', endpoint));
+}
+
+// Asks the notify-purchase function to send a test to this phone only.
+export async function sendTestNotification(endpoint) {
+  const { data, error } = await supabase.functions.invoke('notify-purchase', {
+    body: { test: true, endpoint },
+  });
+  if (error) {
+    const detail = await error.context?.json?.().catch(() => null);
+    throw new Error(detail?.error || error.message);
+  }
+  return data;
+}
+
 // Unticking a bill also drops its "Paid by … alert" note.
 export function setFixedPaid(id, isPaid) {
   const fields = isPaid ? { is_paid: true } : { is_paid: false, paid_by_import_id: null };
