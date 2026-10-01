@@ -180,9 +180,12 @@ async function announcePurchase(importId) {
   if (!imp) return reply({ sent: 0, reason: 'nothing to announce' });
 
   const subs = await rest(`push_subscriptions?household_id=${eq(imp.household_id)}&select=id,endpoint,p256dh,auth`);
+  // Star alerts have no store: "Star Card · $5", "Tap to add the store".
   const message = imp.unreadable
     ? { title: `Couldn’t read a ${imp.card} alert`, body: 'Tap to check it' }
-    : { title: `${imp.merchant} · ${dollars(imp.amount_cents)}`, body: `${imp.card} · Tap to review` };
+    : imp.merchant
+      ? { title: `${imp.merchant} · ${dollars(imp.amount_cents)}`, body: `${imp.card} · Tap to review` }
+      : { title: `${imp.card} · ${dollars(imp.amount_cents)}`, body: 'Tap to add the store' };
   const sent = await sendAll(subs ?? [], { ...message, tag: `import-${imp.id}`, importId: imp.id });
   return reply({ sent });
 }

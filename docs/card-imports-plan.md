@@ -40,6 +40,7 @@ carry-over or Insights.
   `card_import_keys`, `import_card_alert()`, `new_card_import_key()`,
   `expenses.from_savings`, `expenses.card_import_id`,
   `household_members.cardholder_name`, carry view ignores savings.
+  `010_alerts_without_store.sql` — the store becomes optional (Star).
 - `gmail-script/cadence-alerts.gs` — readers (one per card company; Chase
   so far) + the Gmail loop. `gmail-script/test-readers.cjs` checks the
   readers against real alert wording (needs Node, so not on the owner's PC).
@@ -85,6 +86,28 @@ the new columns).
 
 **5. Chase** — purchase alerts by email for both cards, lowest threshold
 (currently $1). Then buy something small and watch it appear.
+
+## Military Star
+
+Star's "Transaction Notification" emails (subject, plus the words "MILITARY
+STAR") give the amount, the card's last 4 and a time, but **no store and no
+name**. So a Star purchase shows as *"Star purchase"* in Overview and the
+notification says "Star Card · $5" / "Tap to add the store". The review sheet
+has the amount and Star filled in. Type the store: if it's been used
+before, its category is picked (until a category is tapped by hand),
+otherwise Extra. No dot (one shared card). No bill matching (no store to
+match on).
+
+The time in the email is **US Central** with no zone written on it (a
+purchase at 11:14 in Europe said "04:14"), and the email can arrive hours
+later. The script converts it (`localToIso`), and falls back to the email's
+arrival time if the result is impossible.
+
+One-time setup: run `supabase/migrations/010_alerts_without_store.sql` (it
+lets alerts in without a store), push the app, paste the new notify-purchase
+function and the new Gmail script, then on MyECP.com set the transaction
+alert limit as low as it goes. Optional Gmail filter: Subject
+`Transaction Notification`, Has the words `"MILITARY STAR"`, Skip the Inbox.
 
 ## Adding another card company
 

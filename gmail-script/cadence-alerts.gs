@@ -1,10 +1,11 @@
 // Cadence card alerts — a Google Apps Script that runs in the owner's Google
 // account (script.google.com). Every minute it looks in Gmail for new card
 // purchase alert emails, reads the store, amount and time out of each one,
-// and sends them to Cadence's Supabase, where they wait in "New from Chase"
+// and sends them to Cadence's Supabase, where they wait in "N new from …"
 // until someone reviews them in the app.
 //
-// It never sees any bank login — only the alert emails Chase already sends.
+// It never sees any bank login — only the alert emails the cards already send
+// (Chase and Military Star so far).
 // It calls one database function, import_card_alert (migration 008), which
 // only accepts purchases carrying the household's import key. The key is the
 // one secret, so it isn't in this file: it's kept in Project Settings →
@@ -62,7 +63,54 @@ const CHASE = {
   },
 };
 
-const READERS = [CHASE];
+// Military Star "Transaction Notification" emails. No store and no name —
+// the store is typed in when the purchase is reviewed:
+//   This email is to notify you that your transaction of $4.54 on your
+//   MILITARY STAR account ending in 2026 has exceeded your chosen
+//   transaction limit.
+//   Transaction Date:         01 OCT 2026 at 04:14
+//   Transaction Description:  OTHER PURCHASES
+// The time has no zone written on it but is US Central (the Exchange is in
+// Dallas): a purchase at 11:14 Central European time (09:14 UTC) said
+// "04:14". It's turned into an exact moment in the Gmail part below
+// (occurredLocal → occurred_at), because Apps Script knows the
+// daylight-saving dates.
+const STAR = {
+  name: 'Star',
+  card: 'Star Card',
+  timeZone: 'America/Chicago',
+  search: 'subject:"Transaction Notification" "MILITARY STAR"',
+  looksLikeAlert: text => /\btransaction of \$[\d,]+\.\d{2} on your MILITARY STAR\b/i.test(toCells(text).join(' ')),
+  read(text) {
+    const cells = toCells(text);
+    const flat = cells.join(' ');
+    const amount = flat.match(/\btransaction of (\$[\d,]+\.\d{2})/i);
+    const last4 = flat.match(/\baccount ending in (\d{4})\b/i);
+    const date = flat.match(/\b(\d{1,2}) ([A-Z]{3})[A-Z]* (\d{4}) at (\d{1,2}):(\d{2})\b/i);
+    const description = fieldAfter(cells, 'Transaction Description')
+      || (flat.match(/\bTransaction Description:?\s+(.+?)(?:\s+If you did not\b|$)/i) || [])[1];
+
+    const amountCents = amount ? toCents(amount[1]) : null;
+    if (amountCents == null) return null;
+
+    const month = date ? MONTHS[date[2].toLowerCase()] : undefined;
+    const pad = n => String(n).padStart(2, '0');
+    return {
+      card: this.card,
+      account: 'Military Star',
+      last4: last4 ? last4[1] : null,
+      cardholder: null,
+      merchantRaw: description ? description.trim() : null, // "OTHER PURCHASES", not a store
+      merchant: null,
+      amountCents,
+      occurredAt: null,
+      occurredLocal: month === undefined ? null
+        : `${date[3]}-${pad(month + 1)}-${pad(date[1])} ${pad(date[4])}:${date[5]}`,
+    };
+  },
+};
+
+const READERS = [CHASE, STAR];
 
 // Text of an email as a list of "cells": one per line or table cell, blanks
 // dropped. Works on plain-text bodies and on HTML bodies with tags removed.
@@ -184,6 +232,7 @@ function checkAlerts() {
         let item = readAlert(reader, message.getPlainBody());
         if (item && item.unreadable) item = readAlert(reader, message.getBody()) || item;
         if (!item) { seen[id] = now; continue; } // not a purchase alert
+        if (item.occurredLocal) item.occurredAt = localToIso(item.occurredLocal, reader.timeZone, message.getDate());
 
         const res = UrlFetchApp.fetch(IMPORT_URL, {
           method: 'post',
@@ -215,6 +264,19 @@ function checkAlerts() {
   props.setProperty(SEEN_KEY, JSON.stringify(seen));
 }
 
+// "2026-10-01 04:14" in the card company's time zone → an exact moment. A
+// time after the email arrived can't be right, so the arrival time is used
+// instead.
+function localToIso(local, timeZone, received) {
+  try {
+    const d = Utilities.parseDate(local, timeZone, 'yyyy-MM-dd HH:mm');
+    if (d.getTime() <= received.getTime() + 5 * 60 * 1000) return d.toISOString();
+  } catch (e) {
+    Logger.log('Couldn’t read the time "' + local + '": ' + e);
+  }
+  return received.toISOString();
+}
+
 // What import_card_alert expects (see migration 008).
 function toAlertRow(item, message) {
   return {
@@ -235,5 +297,5 @@ function toAlertRow(item, message) {
 
 // Lets the tests load the readers outside Google.
 if (typeof module !== 'undefined') {
-  module.exports = { CHASE, READERS, readAlert, toCells, tidyMerchant, easternToIso, toAlertRow };
+  module.exports = { CHASE, STAR, READERS, readAlert, toCells, tidyMerchant, easternToIso, toAlertRow };
 }

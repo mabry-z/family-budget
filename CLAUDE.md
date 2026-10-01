@@ -74,7 +74,8 @@ Static HTML/CSS/JS (ES modules, no build step) served by GitHub Pages from
   of the values in the `expenses_card_check` constraint (see migration 002).
 - `hidden_merchants` — stores hidden from the expense sheet's suggestions
   (`merchant_key` = `merchantKey()` in `js/merchants.js`). Migration 006.
-- `card_imports` — purchases read from card alert emails; `status`
+- `card_imports` — purchases read from card alert emails (Chase, Military
+  Star — Star has no store, `merchant` null until reviewed, migration 010); `status`
   pending | added | dismissed (Ignore) | bill. Written only by `import_card_alert(p_key,
   p_alert)` (anon may call it; it needs the household's import key, kept
   hashed in `card_import_keys`; `new_card_import_key()` is for the SQL
@@ -144,7 +145,7 @@ Static HTML/CSS/JS (ES modules, no build step) served by GitHub Pages from
   testing — the owner tests anything that writes. Browsing to a period that
   doesn't exist yet creates it, so stay on existing periods.
 - **Migrations are run by the owner** in the Supabase SQL editor. Write them
-  to `supabase/migrations/NNN_name.sql` (next number: **010**), make them
+  to `supabase/migrations/NNN_name.sql` (next number: **011**), make them
   safe to re-run, put the file on the clipboard
   (`Get-Content -Raw <file> | Set-Clipboard`) and give short click-by-click
   steps. Use "Run and enable RLS" if Supabase asks.

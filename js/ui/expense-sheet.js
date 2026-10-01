@@ -27,6 +27,7 @@ const orPurchaseEl = document.getElementById('orPurchase');
 let ctx;
 let editing = null;
 let importing = null; // a card_imports row being reviewed (see imports.js)
+let categoryTouched = false; // a category was tapped since the sheet opened
 
 const selectedValue = group => group.querySelector('.chip.selected')?.dataset.value ?? null;
 
@@ -47,6 +48,15 @@ function renderSuggestions() {
   suggestEl.hidden = !stores.length;
 }
 
+// A store-less card purchase (Star): once the store is typed or picked, go to
+// the category it used last time, unless a category was already tapped.
+function suggestForTypedStore() {
+  if (!importing || importing.merchant || importing.unreadable || categoryTouched) return;
+  const suggested = ctx.suggestCategory(merchantInput.value.trim());
+  const extra = ctx.getCategoryChoices()[0].id;
+  selectByValue(categoryChips, suggested ?? extra);
+}
+
 const fromSavings = () => selectedValue(paidFromChips) === 'savings';
 
 // Savings purchases don't count toward a category, so the choice is dimmed.
@@ -65,6 +75,8 @@ function shortAccount(account, cardLabel) {
     .trim();
 }
 
+const sentenceCase = s => String(s).charAt(0).toUpperCase() + String(s).slice(1).toLowerCase();
+
 // The box at the top of the review sheet: who, which card, when, and what
 // the bank said.
 function importNoteHtml(imp) {
@@ -78,8 +90,10 @@ function importNoteHtml(imp) {
   const who = imp.cardholder ? `${dot}<span class="note-who">${esc(imp.cardholder)}</span> · ` : '';
   const account = shortAccount(imp.account, label);
   const cents = (imp.amount_cents / 100).toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+  // No store on the alert (Star): show what it said instead, e.g. "Other purchases".
+  const what = imp.merchant || (imp.merchant_raw ? sentenceCase(imp.merchant_raw) : '');
   return `${badgeHtml(imp.card)}<div>${who}${account ? `${esc(account)} · ` : ''}${esc(whenLabel(imp.occurred_at, { withDay: true }))}`
-    + `<br><b>$${cents}</b> · ${esc(imp.merchant)}</div>`;
+    + `<br><b>$${cents}</b>${what ? ` · ${esc(what)}` : ''}</div>`;
 }
 
 // "Is this your TKS Internet bill?" — shown when a card purchase looks like
@@ -109,7 +123,10 @@ export function initExpenseSheet(context) {
   ctx = context;
   wireSheet(backdrop);
 
-  merchantInput.addEventListener('input', renderSuggestions);
+  merchantInput.addEventListener('input', () => {
+    suggestForTypedStore();
+    renderSuggestions();
+  });
   suggestEl.addEventListener('click', async e => {
     const hide = e.target.closest('[data-hide]');
     if (hide) {
@@ -121,6 +138,7 @@ export function initExpenseSheet(context) {
     const chip = e.target.closest('[data-merchant]');
     if (!chip) return;
     merchantInput.value = chip.dataset.merchant;
+    suggestForTypedStore();
     renderSuggestions();
   });
 
@@ -137,7 +155,10 @@ export function initExpenseSheet(context) {
     });
   }
   // After the selection above: the category changes which stores come first.
-  categoryChips.addEventListener('click', () => renderSuggestions());
+  categoryChips.addEventListener('click', e => {
+    if (e.target.closest('.chip')) categoryTouched = true;
+    renderSuggestions();
+  });
   paidFromChips.addEventListener('click', updatePaidFrom);
 
   form.addEventListener('submit', async e => {
@@ -241,10 +262,10 @@ export function openExpenseSheet(expense = null, imp = null) {
     amountInput.value = expense.amount;
     selectByValue(cardChips, CARDS.some(c => c.value === expense.card) ? expense.card : 'Other');
   } else if (importing) {
-    const suggested = importing.unreadable ? null : ctx.suggestCategory(importing.merchant);
+    const suggested = importing.merchant ? ctx.suggestCategory(importing.merchant) : null;
     const pick = choices.some(c => c.id === suggested) ? suggested : choices[0].id; // Extra
     selectByValue(categoryChips, pick);
-    merchantInput.value = importing.unreadable ? '' : importing.merchant;
+    merchantInput.value = importing.merchant || '';
     selectByValue(typeChips, 'expense');
     amountInput.value = importing.unreadable ? '' : importDollars(importing);
     selectByValue(cardChips, CARDS.some(c => c.value === importing.card) ? importing.card : 'Other');
@@ -263,7 +284,10 @@ export function openExpenseSheet(expense = null, imp = null) {
   billMatchEl.hidden = orPurchaseEl.hidden = !bill;
   billMatchEl.innerHTML = bill ? billMatchHtml(importing) : '';
   categoryHint.hidden = !importing || importing.unreadable;
-  if (importing && !importing.unreadable) {
+  categoryTouched = false;
+  if (importing && !importing.unreadable && !importing.merchant) {
+    categoryHint.textContent = 'Type the store. If you’ve used it before, its category is picked for you.';
+  } else if (importing && !importing.unreadable) {
     const suggested = ctx.suggestCategory(importing.merchant);
     const name = choices.find(c => c.id === suggested)?.name;
     categoryHint.textContent = name

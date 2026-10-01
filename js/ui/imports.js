@@ -38,8 +38,11 @@ function rowHtml(imp, authorColors) {
   }
   const color = imp.cardholder_user_id ? authorColors.get(imp.cardholder_user_id) : null;
   const dot = color ? `<span class="author-dot" style="background:${esc(color)};"></span>` : '';
+  // Star alerts have no store; it's typed in on review.
+  const name = imp.merchant ? esc(imp.merchant)
+    : `<span class="no-store">${esc(cardInfo(imp.card).label)} purchase</span>`;
   return `<button type="button" class="review-row" data-import="${imp.id}">`
-    + `<span class="merchant">${dot}${esc(imp.merchant)}</span>`
+    + `<span class="merchant">${dot}${name}</span>`
     + `<span class="meta">${esc(whenLabel(imp.occurred_at))}</span>`
     + `<span class="amt">${money(importDollars(imp))}</span><span class="go">›</span></button>`;
 }

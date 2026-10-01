@@ -1,7 +1,7 @@
 // Checks the alert readers in cadence-alerts.gs against real email wording.
 // Run: node gmail-script/test-readers.cjs
 const assert = require('assert');
-const { CHASE, readAlert, tidyMerchant } = require('./cadence-alerts.gs');
+const { CHASE, STAR, readAlert, tidyMerchant } = require('./cadence-alerts.gs');
 
 const chasePlain = name => `Transaction alert
 
@@ -22,6 +22,21 @@ const chaseHtml = `<html><body><table><tr><td><span>Transaction alert</span></td
 <tr><td>Amount</td><td>$1,234.56</td></tr></table></body></html>`;
 
 const flatOneLine = 'Transaction alert MABRY, ZACHARY made a $7.49 transaction Account Chase Sapphire Reserve Visa (...1234) Date Mar 8, 2026 at 3:15 PM ET Merchant TRADER JOE&#39;S #552 Amount $7.49';
+
+const starPlain = `Transaction Notification
+
+This email is to notify you that your transaction of $4.54 on your MILITARY STAR account ending in 2026 has exceeded your chosen transaction limit.
+
+Transaction Details:
+Transaction Date:\t01 OCT 2026 at 04:14
+Transaction Description:\tOTHER PURCHASES
+
+If you did not make this purchase, please contact the Exchange Credit Program call center at 1-877-891-7827 (additional numbers) immediately.`;
+
+const starHtml = `<html><body><h1>Transaction Notification</h1>
+<p>This email is to notify you that your transaction of $1,204.10 on your <b>MILITARY STAR</b> account ending in 2026 has exceeded your chosen transaction limit.</p>
+<table><tr><td>Transaction Date:</td><td>9 DEC 2026 at 23:05</td></tr>
+<tr><td>Transaction Description:</td><td>OTHER PURCHASES</td></tr></table></body></html>`;
 
 const cases = [
   ['Lydia, plain text', readAlert(CHASE, chasePlain('MABRY,LYDIA')), {
@@ -44,6 +59,18 @@ const cases = [
   ['amazon style', tidyMerchant('AMAZON.COM*AB12CD'), 'Amazon'],
   ['not a purchase alert', readAlert(CHASE, 'Your statement is ready. Minimum payment due $35.00 on Oct 12.'), null],
   ['alert missing merchant → flagged', readAlert(CHASE, 'MABRY,LYDIA made a $5.00 transaction\nDate\tSep 30, 2026 at 1:00 PM ET'), { unreadable: true, card: 'Chase' }],
+  ['Star, plain text, no store', readAlert(STAR, starPlain), {
+    card: 'Star Card', account: 'Military Star', last4: '2026', cardholder: null,
+    merchantRaw: 'OTHER PURCHASES', merchant: null, amountCents: 454,
+    occurredAt: null, occurredLocal: '2026-10-01 04:14', // US Central; made an exact time in Apps Script
+  }],
+  ['Star, HTML, big amount, one-digit day', readAlert(STAR, starHtml), {
+    card: 'Star Card', account: 'Military Star', last4: '2026', cardholder: null,
+    merchantRaw: 'OTHER PURCHASES', merchant: null, amountCents: 120410,
+    occurredAt: null, occurredLocal: '2026-12-09 23:05',
+  }],
+  ['Star reader ignores Chase alerts', readAlert(STAR, chasePlain('MABRY,LYDIA')), null],
+  ['Star statement isn’t a purchase', readAlert(STAR, 'Your MILITARY STAR statement is ready. Payment due $35.00.'), null],
 ];
 
 let failed = 0;
