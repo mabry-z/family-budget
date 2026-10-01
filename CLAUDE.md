@@ -147,7 +147,8 @@ Static HTML/CSS/JS (ES modules, no build step) served by GitHub Pages from
 - **Migrations are run by the owner** in the Supabase SQL editor. Write them
   to `supabase/migrations/NNN_name.sql` (next number: **011**), make them
   safe to re-run, put the file on the clipboard
-  (`Get-Content -Raw <file> | Set-Clipboard`) and give short click-by-click
+  (`Get-Content -Raw -Encoding UTF8 <file> | Set-Clipboard` — without
+  `-Encoding UTF8`, Windows PowerShell garbles "·", "’", "—" into "Â·" etc.) and give short click-by-click
   steps. Use "Run and enable RLS" if Supabase asks.
 - The live site and the database are shared, so schema changes must keep
   the currently deployed code working until the new code is pushed.
