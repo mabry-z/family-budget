@@ -22,8 +22,11 @@
 **Bills paid on a card**: if a purchase looks like one of its period's
 unpaid bills — a store already linked to that bill, or the bill's name
 starting a word of the store at a similar amount ("TKS Internet" ↔
-"Tkscable"), or the only bill with exactly that amount — the review sheet
-asks "Is this your TKS Internet bill?". **Mark … paid** ticks the bill,
+"Tkscable") — the review sheet asks "Is this your TKS Internet bill?".
+Never by amount alone (a $20 parking charge was offered as Netflix). When
+several fit (two $6 Oura bills for "Ouraring Inc.") it asks "Is this one
+of your Oura bills?" with a **Mark … paid** button for each; once one is
+paid, the next charge only fits the other. **Mark … paid** ticks the bill,
 sets **that period's** amount to what was charged (rounded: under 50¢ down,
 50¢ or more up; the default in Settings doesn't change), adds a "Paid by
 Chase alert" note in Bills, and remembers the store for next time.

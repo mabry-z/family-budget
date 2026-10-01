@@ -445,12 +445,12 @@ initExpenseSheet({
     await loadAll();
     loadMerchants();
   },
-  onPayBill: async (imp, dollars) => {
-    await db.payBillFromImport(imp.id, imp.bill.bill.id, dollars, merchantKey(imp.merchant));
+  onPayBill: async (imp, bill, dollars) => {
+    await db.payBillFromImport(imp.id, bill.id, dollars, merchantKey(imp.merchant));
     await loadAll();
     const period = periodOfMoment(imp.occurred_at);
     const where = samePeriod(period, state.period) ? '' : ` (${periodRangeLabel(period)})`;
-    showToast(`${imp.bill.bill.name} marked paid${where}.`, { ok: true });
+    showToast(`${bill.name} marked paid${where}.`, { ok: true });
   },
   onDismissImport: async importId => {
     await db.settleImport(importId, 'dismissed');

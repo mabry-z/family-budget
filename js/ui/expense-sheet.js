@@ -96,29 +96,52 @@ function importNoteHtml(imp) {
     + `<br><b>$${cents}</b>${what ? ` · ${esc(what)}` : ''}</div>`;
 }
 
+// What several bill names start with: "Oura - L", "Oura -Z" → "Oura".
+function sharedName(names) {
+  let prefix = names[0];
+  for (const n of names) while (!n.toLowerCase().startsWith(prefix.toLowerCase())) prefix = prefix.slice(0, -1);
+  return prefix.replace(/[^A-Za-z0-9]+$/, '').trim();
+}
+
 // "Is this your TKS Internet bill?" — shown when a card purchase looks like
 // one of the period's unpaid bills (imp.bill, see matchBill in merchants.js).
-// Paying it sets that period's bill to what was charged, rounded.
+// When several fit ("Is this one of your Oura bills?") there's a button for
+// each. Paying one sets that period's bill to what was charged, rounded.
 function billMatchHtml(imp) {
-  const { bill, learned } = imp.bill;
-  const billAmount = Math.round(Number(bill.amount));
+  const { bills, learned } = imp.bill;
   const dollars = importDollars(imp);
   const cents = (imp.amount_cents / 100).toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
   const label = cardInfo(imp.card).label;
-  const detail = dollars === billAmount
-    ? `${money(billAmount)} in Bills · not marked paid yet`
-    : `${money(billAmount)} in Bills. ${esc(label)} charged $${cents}, so it’ll change to ${money(dollars)}.`;
+  const amounts = bills.map(b => Math.round(Number(b.amount)));
+  const buttons = bills.map((b, i) =>
+    `<button type="button" class="save-btn" data-pay-bill="${i}">Mark ${esc(b.name)} paid</button>`).join('');
+
+  let question, detail;
+  if (bills.length === 1) {
+    question = `Is this your ${esc(bills[0].name)} bill?`;
+    detail = dollars === amounts[0]
+      ? `${money(amounts[0])} in Bills · not marked paid yet`
+      : `${money(amounts[0])} in Bills. ${esc(label)} charged $${cents}, so it’ll change to ${money(dollars)}.`;
+  } else {
+    const shared = sharedName(bills.map(b => b.name));
+    question = shared ? `Is this one of your ${esc(shared)} bills?` : 'Is this one of these bills?';
+    const same = amounts.every(a => a === amounts[0]);
+    detail = (same ? `${bills.length === 2 ? 'Both' : 'All'} are ${money(amounts[0])} in Bills. ` : '')
+      + `${esc(label)} charged $${cents}`
+      + (amounts.some(a => a !== dollars) ? `, so the one you pick will change to ${money(dollars)}.` : '.');
+  }
+  const recognize = bills.length === 1 ? ' as this bill' : '';
   return `<div class="bill-match-head"><div class="check">✓</div>`
-    + `<div class="bill-match-text"><b>Is this your ${esc(bill.name)} bill?</b><br>${detail}</div></div>`
-    + `<button type="button" class="save-btn" data-pay-bill>Mark ${esc(bill.name)} paid</button>`
-    + (learned ? '' : `<div class="hint">Cadence will recognize ${esc(imp.merchant)} as this bill from now on.</div>`);
+    + `<div class="bill-match-text"><b>${question}</b><br>${detail}</div></div>`
+    + buttons
+    + (learned ? '' : `<div class="hint">Cadence will recognize ${esc(imp.merchant)}${recognize} from now on.</div>`);
 }
 
 // ctx: { getCategoryChoices() → [{id, name}], categoryIdOf(expense),
 //        suggestMerchants(typed, categoryId) → [{name, key}], onHideMerchant(key),
 //        suggestCategory(merchant) → categoryId | null, authorColorOf(userId),
 //        onSave({id?, importId?, category_id, merchant, amount, card, transaction_type, from_savings}),
-//        onDelete(id), onDismissImport(importId), onPayBill(imp, dollars) }
+//        onDelete(id), onDismissImport(importId), onPayBill(imp, bill, dollars) }
 export function initExpenseSheet(context) {
   ctx = context;
   wireSheet(backdrop);
@@ -212,10 +235,11 @@ export function initExpenseSheet(context) {
 
   billMatchEl.addEventListener('click', async e => {
     const button = e.target.closest('[data-pay-bill]');
-    if (!button || !importing?.bill) return;
+    const bill = importing?.bill?.bills[Number(button?.dataset.payBill)];
+    if (!bill) return;
     button.disabled = true;
     try {
-      await ctx.onPayBill(importing, importDollars(importing));
+      await ctx.onPayBill(importing, bill, importDollars(importing));
       closeSheet(backdrop);
     } catch (err) {
       showFormError(errorEl, `Couldn't mark it paid: ${errorMessage(err)}`);

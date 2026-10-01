@@ -418,6 +418,7 @@ input, select, textarea{font-size:16px !important;}
 .bill-match-text{flex:1; font-size:13.5px; line-height:1.4; color:var(--ink-soft);}
 .bill-match-text b{color:var(--ink); font-weight:500; font-size:14.5px;}
 .bill-match .save-btn{margin-top:12px; border-color:var(--ok-line); background:transparent;}
+.bill-match .save-btn + .save-btn{margin-top:8px;}
 .bill-match .hint{text-align:center; margin-top:8px;}
 .or-purchase{font-size:13px; font-weight:500; color:var(--ink-soft); margin:0 0 12px;}
 .or-purchase[hidden]{display:none;}
