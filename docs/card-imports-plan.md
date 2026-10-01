@@ -99,9 +99,9 @@ otherwise Extra. No dot (one shared card). No bill matching (no store to
 match on).
 
 The time in the email is **US Central** with no zone written on it (a
-purchase at 11:14 in Europe said "04:14"), and the email can arrive hours
-later. The script converts it (`localToIso`), and falls back to the email's
-arrival time if the result is impossible.
+purchase at 11:14 in Europe said "04:14"); the email itself arrives within
+moments, like Chase's. The script converts the time (`localToIso`), and
+falls back to the email's arrival time if the result is impossible.
 
 One-time setup: run `supabase/migrations/010_alerts_without_store.sql` (it
 lets alerts in without a store), push the app, paste the new notify-purchase
