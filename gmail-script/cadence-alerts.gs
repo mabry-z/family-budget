@@ -63,7 +63,8 @@ const CHASE = {
   },
 };
 
-// Military Star "Transaction Notification" emails. No store and no name —
+// Military Star emails from DoNotReply@aafes.com, subject "Your MILITARY STAR
+// Card Transaction Exceeds the Limit". No store and no name —
 // the store is typed in when the purchase is reviewed:
 //   This email is to notify you that your transaction of $4.54 on your
 //   MILITARY STAR account ending in 2026 has exceeded your chosen
@@ -79,7 +80,7 @@ const STAR = {
   name: 'Star',
   card: 'Star Card',
   timeZone: 'America/Chicago',
-  search: 'subject:"Transaction Notification" "MILITARY STAR"',
+  search: 'from:aafes.com "MILITARY STAR"',
   looksLikeAlert: text => /\btransaction of \$[\d,]+\.\d{2} on your MILITARY STAR\b/i.test(toCells(text).join(' ')),
   read(text) {
     const cells = toCells(text);

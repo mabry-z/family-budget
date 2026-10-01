@@ -92,9 +92,10 @@ the new columns).
 
 ## Military Star
 
-Star's "Transaction Notification" emails (subject, plus the words "MILITARY
-STAR") give the amount, the card's last 4 and a time, but **no store and no
-name**. So a Star purchase shows as *"Star purchase"* in Overview and the
+Star's alert emails (from DoNotReply@aafes.com, subject "Your MILITARY STAR
+Card Transaction Exceeds the Limit"; "Transaction Notification" is only the
+heading inside) give the amount, the card's last 4 and a time, but **no
+store and no name**. So a Star purchase shows as *"Star purchase"* in Overview and the
 notification says "Star Card · $5" / "Tap to add the store". The review sheet
 has the amount and Star filled in. Type the store: if it's been used
 before, its category is picked (until a category is tapped by hand),
@@ -109,8 +110,9 @@ falls back to the email's arrival time if the result is impossible.
 One-time setup: run `supabase/migrations/010_alerts_without_store.sql` (it
 lets alerts in without a store), push the app, paste the new notify-purchase
 function and the new Gmail script, then on MyECP.com set the transaction
-alert limit as low as it goes. Optional Gmail filter: Subject
-`Transaction Notification`, Has the words `"MILITARY STAR"`, Skip the Inbox.
+alert limit as low as it goes ($1). Optional Gmail filter: From
+`DoNotReply@aafes.com`, Has the words `"exceeded your chosen transaction
+limit"`, Skip the Inbox.
 
 ## Adding another card company
 
