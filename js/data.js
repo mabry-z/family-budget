@@ -123,6 +123,17 @@ export async function loadCarryStart() {
   return rows.length ? rows[0].carry_start : null;
 }
 
+// First period whose overages come out of Extra (migration 011), or null —
+// also null before 011 has been run, so the app keeps working without it.
+export async function loadOverageStart() {
+  try {
+    const rows = await run(supabase.from('budget_defaults').select('overage_start'));
+    return rows.length ? rows[0].overage_start : null;
+  } catch {
+    return null;
+  }
+}
+
 // Every store name ever entered, for suggestions in the expense sheet.
 export function loadMerchantHistory() {
   return selectAll('expenses', 'id, merchant, category, category_id, created_at', q => q.not('merchant', 'is', null));

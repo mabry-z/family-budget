@@ -98,7 +98,13 @@ export function snapshotCategories(periodCategories, categoriesById) {
 //
 // Extra is never stored: starting − fixed costs − every other category's
 // (effective) budget + whatever Extra carried in from the previous period.
-export function buildBudget({ starting, carryIn, fixedCosts, periodCategories, extraCategory, expenses, categoryIdOf }) {
+//
+// coverOverages (periods from budget_defaults.overage_start on): whatever a
+// category spends past its budget is taken from Extra, as an automatic
+// "<name> overage" entry. The category still shows it's over; Extra's
+// leftover (and so the carry into the next period) drops by the same amount.
+// Overages are never real spending: card.spent and budget.spent leave them out.
+export function buildBudget({ starting, carryIn, fixedCosts, periodCategories, extraCategory, expenses, categoryIdOf, coverOverages = false }) {
   const fixedTotal = sum(fixedCosts, f => f.amount);
   const inPeriod = new Set(periodCategories.map(c => c.id));
   const bucketOf = e => {
@@ -122,15 +128,37 @@ export function buildBudget({ starting, carryIn, fixedCosts, periodCategories, e
   });
   const moved = sum(categoryCards, c => c.moved);
   const extra = starting + carryIn - fixedTotal - sum(categoryCards, c => c.budget);
-  const extraCard = { ...withSpending(extraCategory), isExtra: true, budget: extra, carryIn };
+  const overages = coverOverages ? overagesOf(categoryCards) : [];
+  const covered = sum(overages, o => o.amount);
+  const extraCard = { ...withSpending(extraCategory), isExtra: true, budget: extra, carryIn, overages, covered };
 
-  const cards = [...categoryCards, extraCard].map(c => ({ ...c, bar: barFor(c.spent, c.budget, c.isExtra) }));
+  const cards = [...categoryCards, extraCard].map(c => ({ ...c, bar: barFor(c.spent + (c.covered ?? 0), c.budget, c.isExtra) }));
   const toSpend = starting + carryIn - fixedTotal; // everything left after bills, Extra included
   const spent = sum(cards, c => c.spent);
   return {
     cards, bucketOf, starting, carryIn, fixedTotal, extra, moved,
     toSpend, spent, left: toSpend - spent,
   };
+}
+
+// Whether a period (its 'YYYY-MM-DD' start label) takes overages from Extra.
+export function coversOverages(periodISO, overageStart) {
+  return Boolean(overageStart) && periodISO >= overageStart;
+}
+
+// One entry per category that's over: { categoryId, name, color, amount,
+// created_at } — dated by its newest expense (the one that took it over, or
+// kept it there).
+function overagesOf(categoryCards) {
+  return categoryCards
+    .filter(c => c.spent > c.budget)
+    .map(c => ({
+      categoryId: c.id,
+      name: c.name,
+      color: c.color,
+      amount: c.spent - c.budget,
+      created_at: c.expenses.map(e => e.created_at).sort().at(-1),
+    }));
 }
 
 export function cardTotals(expenses, cards) {
@@ -166,10 +194,11 @@ export function groupByPeriod(list, keyOf) {
   return groups;
 }
 
-// What was left in a period's Extra, not counting what it carried in.
+// What was left in a period's Extra, not counting what it carried in
+// (overages it covered do come off).
 export function extraLeftover(budget) {
   const extra = budget.cards.find(c => c.isExtra);
-  return extra.budget - budget.carryIn - extra.spent;
+  return extra.budget - budget.carryIn - extra.spent - extra.covered;
 }
 
 export const NEAR_BUDGET = 10; // within this many dollars (and not over) = "on budget"

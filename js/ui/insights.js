@@ -3,7 +3,7 @@
 import * as db from '../data.js';
 import {
   money, sum, signedAmount, MONTHS_SHORT, buildBudget, snapshotCategories,
-  periodsInRange, periodKey, groupByPeriod, extraLeftover, budgetStatus, overBudgetPattern,
+  periodsInRange, periodKey, groupByPeriod, extraLeftover, budgetStatus, overBudgetPattern, coversOverages,
 } from '../budget.js';
 import { fromISO } from '../paydays.js';
 import { groupByMerchant, biggestPurchase } from '../merchants.js';
@@ -63,14 +63,15 @@ export function initInsights(context) {
 async function ensureLoaded(fromYear, payPeriods) {
   if (cache && cache.fromYear <= fromYear) return;
   const periodIds = payPeriods.filter(r => r.year >= fromYear).map(r => r.id);
-  const [expenses, fixedCosts, periodCategories, carry, carryStart] = await Promise.all([
+  const [expenses, fixedCosts, periodCategories, carry, carryStart, overageStart] = await Promise.all([
     db.loadExpensesSince(fromYear),
     db.loadFixedCostsSince(fromYear),
     db.loadPeriodCategoriesFor(periodIds),
     db.loadAllCarryIn(),
     db.loadCarryStart(),
+    db.loadOverageStart(),
   ]);
-  cache = { fromYear, expenses, fixedCosts, periodCategories, carry, carryStart };
+  cache = { fromYear, expenses, fixedCosts, periodCategories, carry, carryStart, overageStart };
 }
 
 export async function renderInsights() {
@@ -114,6 +115,7 @@ function summarize(rows) {
       extraCategory,
       expenses: spending.get(key) ?? [],
       categoryIdOf,
+      coverOverages: coversOverages(row.start_date, cache.overageStart),
     });
     const current = row.start_date === currentStartISO;
     return { row, budget, current, label: periodLabel(row) + (current ? ' (so far)' : '') };

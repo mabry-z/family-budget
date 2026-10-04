@@ -36,6 +36,16 @@ function expenseRowHtml(e, meta) {
     + `</div>`;
 }
 
+// An overage Extra covered, shown like a purchase. Tapping it opens the
+// category that went over.
+function overageRowHtml(o, meta) {
+  return `<div class="expense-row clickable overage" data-cat="${o.categoryId}">`
+    + `<span class="merchant">${esc(o.name)} overage</span>`
+    + `<span class="meta">${esc(meta)}</span>`
+    + `<span>${money(o.amount)}</span>`
+    + `</div>`;
+}
+
 function noteHtml(card) {
   if (card.isExtra) {
     if (!card.carryIn) return '';
@@ -67,7 +77,7 @@ const newestFirst = (a, b) => new Date(b.created_at) - new Date(a.created_at);
 
 // "$180 left" over a small "of $300", or "$20 over" (red) over "$300 budget".
 function numsHtml(card) {
-  const left = card.budget - card.spent;
+  const left = card.budget - card.spent - (card.covered ?? 0);
   const budget = `<span${card.budget < 0 ? ' class="negative"' : ''}>${money(card.budget)}</span>`;
   return left < 0
     ? `<b class="negative">${money(-left)} over</b><small>${budget} budget</small>`
@@ -76,12 +86,17 @@ function numsHtml(card) {
 
 // First line of an expanded card.
 function detailHtml(card) {
-  return `<div class="cat-detail">Spent ${money(card.spent)}</div>`;
+  return `<div class="cat-detail">Spent ${money(card.spent + (card.covered ?? 0))}</div>`;
 }
 
 function cardHtml(card) {
-  const rows = card.expenses.length
-    ? [...card.expenses].sort(newestFirst).map(e => expenseRowHtml(e, `${shortDate(e.created_at)} · ${e.card}`)).join('')
+  // Extra's list mixes its own expenses with the overages it covered.
+  const items = [
+    ...card.expenses.map(e => ({ created_at: e.created_at, html: () => expenseRowHtml(e, `${shortDate(e.created_at)} · ${e.card}`) })),
+    ...(card.overages ?? []).map(o => ({ created_at: o.created_at, html: () => overageRowHtml(o, `${shortDate(o.created_at)} · Auto`) })),
+  ];
+  const rows = items.length
+    ? items.sort(newestFirst).map(i => i.html()).join('')
     : '<div class="empty">No expenses yet.</div>';
   return `<div class="cat-card${card.id === expandedId ? ' expanded' : ''}" data-cat="${card.id}">
     <div class="cat-top">
@@ -127,6 +142,11 @@ export function initOverview({ onEditExpense, onEmpty }) {
       onEditExpense(expensesById.get(row.dataset.expense));
       return;
     }
+    const overage = e.target.closest('.overage[data-cat]');
+    if (overage) {
+      expandCategory(Number(overage.dataset.cat), { scroll: true });
+      return;
+    }
     const card = e.target.closest('.cat-card');
     if (!card) return;
     const id = Number(card.dataset.cat);
@@ -154,12 +174,15 @@ export function renderOverview(budget, expenses, colors = new Map()) {
   cardsEl.innerHTML = budget.cards.map(cardHtml).join('');
 
   const nameById = new Map(budget.cards.map(c => [c.id, c.name]));
-  const recent = [...expenses]
+  const extraCard = budget.cards.find(c => c.isExtra);
+  const overages = extraCard.overages.map(o => ({ ...o, isOverage: true }));
+  const recent = [...expenses, ...overages]
     .sort(newestFirst)
     .slice(0, 5);
 
   recentEl.innerHTML = recent.length
     ? recent.map(e => {
+        if (e.isOverage) return overageRowHtml(e, `${shortDate(e.created_at)} · Auto`);
         if (e.from_savings) {
           return `<div class="expense-row clickable excluded" data-expense="${e.id}">`
             + `<span class="merchant">${authorDotHtml(e)}${esc(e.merchant || 'Unknown')}<span class="savings-tag">Savings</span></span>`

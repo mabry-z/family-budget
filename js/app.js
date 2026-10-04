@@ -3,6 +3,7 @@ import * as auth from './auth.js';
 import { CARDS, AUTHOR_COLORS } from './config.js';
 import {
   periodForDate, shiftPeriod, samePeriod, periodStartISO, buildBudget, cardTotals, snapshotCategories, signedAmount,
+  coversOverages,
 } from './budget.js';
 import { merchantIndex, suggestMerchants, isSuggested } from './merchants.js';
 import { today, toISO, fromISO, addDays, rangeLabel, expectedPayday } from './paydays.js';
@@ -33,6 +34,7 @@ const state = {
   payPeriods: [],        // every pay_periods row, oldest first
   periodRow: null,       // pay_periods row for the viewed period
   carryIn: 0,            // Extra carried into the viewed period
+  overageStart: null,    // first period ('YYYY-MM-DD') whose overages come out of Extra
   categories: [],        // every category, including archived ones and Extra
   periodCategories: [],  // this period's snapshot: [{ id, name, color, sort_order, amount, emptied }]
   extraCategory: null,
@@ -107,15 +109,17 @@ async function loadAll({ quiet = false } = {}) {
 
   try {
     const periodRow = await db.ensurePeriod(period);
-    const [payPeriods, carryIn, categories, periodCats, fixedCosts, expenses] = await Promise.all([
+    const [payPeriods, carryIn, categories, periodCats, fixedCosts, expenses, overageStart] = await Promise.all([
       db.loadPayPeriods(),
       db.loadCarryIn(periodRow.id),
       db.loadCategories(),
       db.loadPeriodCategories(periodRow.id),
       db.loadFixedCosts(period),
       db.loadExpenses(period),
+      db.loadOverageStart(),
     ]);
     if (token !== loadToken) return; // the user moved to another period meanwhile
+    state.overageStart = overageStart;
 
     state.payPeriods = payPeriods;
     state.periodRow = periodRow;
@@ -152,6 +156,7 @@ function render() {
     extraCategory: state.extraCategory,
     expenses: budgetExpenses(state.expenses),
     categoryIdOf,
+    coverOverages: coversOverages(periodStartISO(state.period), state.overageStart),
   });
   renderOverview(state.budget, state.expenses, state.authorColors);
   renderBills(state.fixedCosts);

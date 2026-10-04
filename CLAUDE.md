@@ -61,7 +61,8 @@ Static HTML/CSS/JS (ES modules, no build step) served by GitHub Pages from
   label (used for ordering and "this period onward"); `starts_on` is the real
   start (payday), null until confirmed; `starting_amount`.
 - `budget_defaults` — one row per household: default `starting_amount`
-  (3500 originally), `carry_start` (2026-09-16 — moved from the Oct 1 default so the Sep 15 period carries).
+  (3500 originally), `carry_start` (2026-09-16 — moved from the Oct 1 default so the Sep 15 period carries),
+  `overage_start` (2026-10-01 — migration 011; null = overages off).
 - `categories` — defaults (`default_amount`, `color`, `sort_order`,
   `is_active` = archived when false). Exactly one row has
   `is_remainder = true`: **Extra**.
@@ -91,7 +92,7 @@ Static HTML/CSS/JS (ES modules, no build step) served by GitHub Pages from
   `card_imports.notified_at` — announced once. A trigger on `card_imports`
   calls notify-purchase via `pg_net`. Migration 009.
 - `period_extra_carry` (view) — Extra carried into each period (ignores
-  savings purchases).
+  savings purchases; takes off overages from `overage_start` on, 011).
 - Functions: `ensure_period` (creates a period from defaults the first time
   it's opened), `save_settings`, `start_period`.
 - `budget_settings` is the old app's table — no longer used.
@@ -104,6 +105,14 @@ Static HTML/CSS/JS (ES modules, no build step) served by GitHub Pages from
   spent (clamped to 0..amount); the rest goes to that period's Extra.
 - Extra's leftover carries into the next period, **negative too**, from
   `carry_start` (Sep 16, 2026 — the Sep 15 period) on. Calculated live, never stored.
+- **Overages come out of Extra** (periods from `overage_start` on): what a
+  category spends past its (effective) budget shows as one automatic
+  "<name> overage" entry in Extra per category per period (updates as
+  spending changes; tapping it opens the category). The category still
+  shows "$X over". Overages aren't spending: Insights and "Spent so far"
+  leave them out; they lower Extra's leftover and so the carry-in, which
+  goes negative when Extra runs out. Calculated live in `buildBudget`
+  (`coverOverages`) and in the view — never stored.
 - Settings saved on the current or a future period change the defaults, that
   period and every later existing period — never earlier ones. Saved on a
   past period: only that period changes (category names locked there).
@@ -145,7 +154,7 @@ Static HTML/CSS/JS (ES modules, no build step) served by GitHub Pages from
   testing — the owner tests anything that writes. Browsing to a period that
   doesn't exist yet creates it, so stay on existing periods.
 - **Migrations are run by the owner** in the Supabase SQL editor. Write them
-  to `supabase/migrations/NNN_name.sql` (next number: **011**), make them
+  to `supabase/migrations/NNN_name.sql` (next number: **012**), make them
   safe to re-run, put the file on the clipboard
   (`Get-Content -Raw -Encoding UTF8 <file> | Set-Clipboard` — without
   `-Encoding UTF8`, Windows PowerShell garbles "·", "’", "—" into "Â·" etc.) and give short click-by-click
