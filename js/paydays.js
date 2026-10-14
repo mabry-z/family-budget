@@ -28,6 +28,30 @@ export function today() {
   return new Date(now.getFullYear(), now.getMonth(), now.getDate());
 }
 
+// The calendar day (on this phone) of a timestamp.
+export function dayOf(timestamp) {
+  const d = new Date(timestamp);
+  return new Date(d.getFullYear(), d.getMonth(), d.getDate());
+}
+
+// The day an expense happened: its purchase date (migration 012), else the
+// card alert's time, else when it was entered.
+export function purchaseDate(expense) {
+  if (expense.spent_on) return fromISO(expense.spent_on);
+  return dayOf(expense.card_import?.occurred_at ?? expense.created_at);
+}
+
+// Day 1 is the period's first day (payday). Both are local midnights; the
+// rounding absorbs daylight-saving hours.
+export function dayOfPeriod(date, start) {
+  return Math.round((date - start) / 86400000) + 1;
+}
+
+// Newest purchase first; same day → newest entered first.
+export function newestPurchaseFirst(a, b) {
+  return (purchaseDate(b) - purchaseDate(a)) || (new Date(b.created_at) - new Date(a.created_at));
+}
+
 // "Fri, Oct 30"
 export function shortDay(date) {
   return `${WEEKDAYS_SHORT[date.getDay()]}, ${MONTHS_SHORT[date.getMonth()]} ${date.getDate()}`;

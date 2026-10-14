@@ -2,6 +2,7 @@ import { CARDS } from '../config.js';
 import { parseWhole, money } from '../budget.js';
 import { esc, errorMessage, showFormError, openSheet, closeSheet, wireSheet, selectChip } from './dom.js';
 import { badgeHtml, cardInfo, whenLabel, importDollars } from './imports.js';
+import { today, toISO, fromISO, addDays, dayOf, shortDay, purchaseDate } from '../paydays.js';
 
 const backdrop = document.getElementById('expenseBackdrop');
 const form = document.getElementById('expenseForm');
@@ -23,11 +24,19 @@ const importNote = document.getElementById('importNote');
 const dismissBtn = document.getElementById('importDismiss');
 const billMatchEl = document.getElementById('billMatch');
 const orPurchaseEl = document.getElementById('orPurchase');
+const dateChips = document.getElementById('dateChips');
+const dateInput = document.getElementById('dateInput');
+const datePickLabel = document.getElementById('datePickLabel');
+const dateLocked = document.getElementById('dateLocked');
+const dateHint = document.getElementById('dateHint');
 
 let ctx;
 let editing = null;
 let importing = null; // a card_imports row being reviewed (see imports.js)
 let categoryTouched = false; // a category was tapped since the sheet opened
+// Purchase date: the chosen day (ISO), the days allowed (the period's, up to
+// today), and whether it was changed since the sheet opened.
+let date = { chosen: null, min: null, max: null, touched: false, alertAt: null };
 
 const selectedValue = group => group.querySelector('.chip.selected')?.dataset.value ?? null;
 
@@ -55,6 +64,78 @@ function suggestForTypedStore() {
   const suggested = ctx.suggestCategory(merchantInput.value.trim());
   const extra = ctx.getCategoryChoices()[0].id;
   selectByValue(categoryChips, suggested ?? extra);
+}
+
+// ---------- Purchase date ----------
+
+const inDateRange = iso => iso >= date.min && iso <= date.max;
+const inEarlierPeriod = () => !editing && !date.alertAt && date.chosen < date.periodStart;
+
+// Today / Yesterday when they're allowed, else "Pick a day" showing the
+// chosen day. A new expense may also be dated in the period before (e.g.
+// yesterday's receipt on payday) and then goes there. Card purchases show
+// the alert's time instead, and it can't be changed.
+function renderDate(error = '') {
+  dateChips.hidden = !!date.alertAt;
+  dateLocked.hidden = !date.alertAt;
+  if (date.alertAt) {
+    const card = cardInfo(importing ? importing.card : editing.card).label;
+    dateLocked.textContent = `${shortDay(dayOf(date.alertAt))} · ${new Date(date.alertAt).toLocaleTimeString('en-US', { hour: 'numeric', minute: '2-digit' })}`;
+    dateHint.textContent = `From the ${card} alert`;
+    dateHint.hidden = false;
+    return;
+  }
+  const todayISO = toISO(today());
+  const yesterdayISO = toISO(addDays(today(), -1));
+  const [todayChip, yesterdayChip, pickChip] = dateChips.querySelectorAll('.chip');
+  todayChip.hidden = !inDateRange(todayISO);
+  yesterdayChip.hidden = !inDateRange(yesterdayISO);
+  const chip = date.chosen === todayISO && !todayChip.hidden ? todayChip
+    : date.chosen === yesterdayISO && !yesterdayChip.hidden ? yesterdayChip : pickChip;
+  selectChip(dateChips, chip);
+  datePickLabel.textContent = chip === pickChip ? shortDay(fromISO(date.chosen)) : 'Pick a day';
+  dateInput.min = date.min;
+  dateInput.max = date.max;
+  dateInput.value = date.chosen;
+  dateHint.textContent = error || (inEarlierPeriod() ? `Goes in ${date.earlierLabel}` : '');
+  dateHint.hidden = !dateHint.textContent;
+}
+
+function openDate(expense) {
+  const range = ctx.getDateRange();
+  const todayISO = toISO(today());
+  date = {
+    // Editing keeps an expense in its period; a new one may go in the one before.
+    min: expense ? range.periodStart : range.earlierStart,
+    max: range.max,
+    periodStart: range.periodStart,
+    earlierLabel: range.earlierLabel,
+    touched: false,
+    alertAt: importing?.occurred_at ?? expense?.card_import?.occurred_at ?? null,
+    // New expenses start on today, or the nearest day of the period being added to.
+    chosen: expense ? toISO(purchaseDate(expense))
+      : todayISO < range.periodStart ? range.periodStart : todayISO > range.max ? range.max : todayISO,
+  };
+  renderDate();
+}
+
+// What to save as spent_on, or undefined to leave it as it is.
+function chosenDate() {
+  if (importing) return toISO(dayOf(importing.occurred_at));
+  if (date.alertAt || (editing && !date.touched)) return undefined;
+  return date.chosen;
+}
+
+function setDate(iso) {
+  if (!iso) return;
+  if (!inDateRange(iso)) {
+    // Some phones' calendars ignore the allowed range.
+    renderDate(`Pick a day from ${shortDay(fromISO(date.min))} to ${shortDay(fromISO(date.max))}.`);
+    return;
+  }
+  date.chosen = iso;
+  date.touched = true;
+  renderDate();
 }
 
 const fromSavings = () => selectedValue(paidFromChips) === 'savings';
@@ -140,7 +221,9 @@ function billMatchHtml(imp) {
 // ctx: { getCategoryChoices() → [{id, name}], categoryIdOf(expense),
 //        suggestMerchants(typed, categoryId) → [{name, key}], onHideMerchant(key),
 //        suggestCategory(merchant) → categoryId | null, authorColorOf(userId),
-//        onSave({id?, importId?, category_id, merchant, amount, card, transaction_type, from_savings}),
+//        getDateRange() → { periodStart, max, earlierStart, earlierLabel }: the viewed period's days
+//          (ISO, up to today) and the period before, which a new expense may also be dated in,
+//        onSave({id?, importId?, category_id, merchant, amount, card, transaction_type, from_savings, spent_on?}),
 //        onDelete(id), onDismissImport(importId), onPayBill(imp, bill, dollars) }
 export function initExpenseSheet(context) {
   ctx = context;
@@ -184,6 +267,17 @@ export function initExpenseSheet(context) {
   });
   paidFromChips.addEventListener('click', updatePaidFrom);
 
+  dateChips.addEventListener('click', e => {
+    const value = e.target.closest('.chip')?.dataset.value;
+    if (value === 'today') setDate(toISO(today()));
+    else if (value === 'yesterday') setDate(toISO(addDays(today(), -1)));
+  });
+  // Phones open their calendar on a tap; computers need asking.
+  dateInput.addEventListener('click', () => {
+    try { dateInput.showPicker?.(); } catch { /* already open, or not allowed */ }
+  });
+  dateInput.addEventListener('change', () => setDate(dateInput.value));
+
   form.addEventListener('submit', async e => {
     e.preventDefault();
     const merchant = merchantInput.value.trim();
@@ -205,6 +299,7 @@ export function initExpenseSheet(context) {
         card: selectedValue(cardChips),
         transaction_type: selectedValue(typeChips),
         from_savings: fromSavings(),
+        spent_on: chosenDate(),
       });
       closeSheet(backdrop);
     } catch (err) {
@@ -301,6 +396,7 @@ export function openExpenseSheet(expense = null, imp = null) {
     selectByValue(cardChips, CARDS[0].value);
   }
   selectByValue(paidFromChips, expense?.from_savings ? 'savings' : 'budget');
+  openDate(expense);
 
   importNote.hidden = !importing;
   importNote.innerHTML = importing ? importNoteHtml(importing) : '';

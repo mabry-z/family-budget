@@ -137,6 +137,16 @@
       <label>Card</label>
       <div class="chips card-row" id="cardChips"></div>
     </div>
+    <div class="field">
+      <label>Date</label>
+      <div class="toggle-row" id="dateChips">
+        <button type="button" class="chip" data-value="today">Today</button>
+        <button type="button" class="chip" data-value="yesterday">Yesterday</button>
+        <span class="chip date-pick" data-value="pick"><span id="datePickLabel">Pick a day</span><input type="date" id="dateInput" aria-label="Pick a day"></span>
+      </div>
+      <div class="date-locked" id="dateLocked" hidden></div>
+      <div class="hint" id="dateHint" hidden></div>
+    </div>
     <div class="form-error" id="expenseError" hidden></div>
     <button type="submit" class="save-btn" id="expenseSubmit">Add expense</button>
     <button type="button" class="delete-btn" id="expenseDelete" hidden>Delete expense</button>

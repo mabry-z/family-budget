@@ -34,6 +34,8 @@ Static HTML/CSS/JS (ES modules, no build step) served by GitHub Pages from
 - `dev/serve.ps1` — local static server (http://localhost:8000).
 - `docs/households-plan.md` — plan and rollout for accounts + households.
 - `docs/insights-plan.md` — the Insights tab (replaced Trends) and its rules.
+- `docs/pace-plan.md` — purchase dates on expenses, and the Insights pace
+  card ("When does the money go?", replaced "Are we coming out ahead?").
 - `docs/card-imports-plan.md` — card alert emails → Cadence, "Paid from
   savings", and the one-time setup steps.
 - `docs/notifications-plan.md` — card purchase notifications and setup.
@@ -88,6 +90,10 @@ Static HTML/CSS/JS (ES modules, no build step) served by GitHub Pages from
   Matching is `matchBill()` in `js/merchants.js`.
 - `expenses.from_savings` — paid from savings: shown, never counted.
   `expenses.card_import_id` — the alert it came from (unique).
+- `expenses.spent_on` — purchase date (Today / Yesterday / Pick a day on the
+  expense sheet, or the alert's day). Blank on older rows: then the alert's
+  time, else `created_at`; always read it through `purchaseDate()` in
+  `js/paydays.js`. Migration 012.
 - `push_subscriptions` — phones with notifications on (own rows only).
   `card_imports.notified_at` — announced once. A trigger on `card_imports`
   calls notify-purchase via `pg_net`. Migration 009.
@@ -123,12 +129,18 @@ Static HTML/CSS/JS (ES modules, no build step) served by GitHub Pages from
   **asks every period** ("Has your … pay arrived?"), starting 3 days before
   the expected payday; "Not yet" snoozes until the next day.
 - Expenses stay in the period they were added to; changing a start date
-  doesn't move them.
+  doesn't move them. A purchase date can be a day of that period up to
+  today; a new expense dated in the period before goes there instead (e.g.
+  yesterday's receipt on payday). Editing can't move an expense to another
+  period. Card alert dates can't be changed.
 - Insights counts by **pay period**, never calendar month, and counts
   expenses only (never moved or carried money). Its per-period numbers come
   from `buildBudget`, so they always match the Overview. The scorecard
   judges each category against its **original** amount (emptied ones too);
-  "within $10" and not over = amber.
+  "within $10" and not over = amber. The pace card's "usual" averages the
+  finished periods in the range by day of the period (day 1 = payday), by
+  purchase date; ahead of usual = red, behind = green, within $10 = "right
+  on".
 - Store suggestions: a store is suggested once used twice, or used in the
   last 30 days; hidden stores never are. Hiding only affects suggestions
   (never expenses or Insights). Manage in Settings → Store suggestions.
@@ -154,7 +166,7 @@ Static HTML/CSS/JS (ES modules, no build step) served by GitHub Pages from
   testing — the owner tests anything that writes. Browsing to a period that
   doesn't exist yet creates it, so stay on existing periods.
 - **Migrations are run by the owner** in the Supabase SQL editor. Write them
-  to `supabase/migrations/NNN_name.sql` (next number: **012**), make them
+  to `supabase/migrations/NNN_name.sql` (next number: **013**), make them
   safe to re-run, put the file on the clipboard
   (`Get-Content -Raw -Encoding UTF8 <file> | Set-Clipboard` — without
   `-Encoding UTF8`, Windows PowerShell garbles "·", "’", "—" into "Â·" etc.) and give short click-by-click

@@ -1,5 +1,6 @@
 import { money, sum, MONTHS_SHORT } from '../budget.js';
 import { esc } from './dom.js';
+import { purchaseDate, newestPurchaseFirst, toISO } from '../paydays.js';
 
 const cardsEl = document.getElementById('categoryCards');
 const recentEl = document.getElementById('recentList');
@@ -8,11 +9,20 @@ let expandedId = null;
 let expensesById = new Map();
 let sweepable = []; // categories with money left that haven't been emptied
 let authorColors = new Map(); // user_id → dot colour; see renderOverview
+let cardsById = new Map(); // this period's budget cards, for dating overages
 
-function shortDate(iso) {
-  const d = new Date(iso);
+function shortDate(d) {
   return `${MONTHS_SHORT[d.getMonth()]} ${d.getDate()}`;
 }
+
+// An overage is dated by the latest purchase in the category that went over.
+function overageDate(o) {
+  const dates = (cardsById.get(o.categoryId)?.expenses ?? []).map(purchaseDate);
+  return dates.length ? new Date(Math.max(...dates)) : new Date(o.created_at);
+}
+
+// Gives an overage a spent_on, so it sorts among purchases (newestPurchaseFirst).
+const datedOverage = o => ({ ...o, spent_on: toISO(overageDate(o)) });
 
 function amountHtml(e) {
   return e.transaction_type === 'refund'
@@ -73,8 +83,6 @@ function actionHtml(card) {
   return '';
 }
 
-const newestFirst = (a, b) => new Date(b.created_at) - new Date(a.created_at);
-
 // "$180 left" over a small "of $300", or "$20 over" (red) over "$300 budget".
 function numsHtml(card) {
   const left = card.budget - card.spent - (card.covered ?? 0);
@@ -92,11 +100,11 @@ function detailHtml(card) {
 function cardHtml(card) {
   // Extra's list mixes its own expenses with the overages it covered.
   const items = [
-    ...card.expenses.map(e => ({ created_at: e.created_at, html: () => expenseRowHtml(e, `${shortDate(e.created_at)} · ${e.card}`) })),
-    ...(card.overages ?? []).map(o => ({ created_at: o.created_at, html: () => overageRowHtml(o, `${shortDate(o.created_at)} · Auto`) })),
+    ...card.expenses.map(e => ({ ...e, html: () => expenseRowHtml(e, `${shortDate(purchaseDate(e))} · ${e.card}`) })),
+    ...(card.overages ?? []).map(o => ({ ...datedOverage(o), html: () => overageRowHtml(o, `${shortDate(overageDate(o))} · Auto`) })),
   ];
   const rows = items.length
-    ? items.sort(newestFirst).map(i => i.html()).join('')
+    ? items.sort(newestPurchaseFirst).map(i => i.html()).join('')
     : '<div class="empty">No expenses yet.</div>';
   return `<div class="cat-card${card.id === expandedId ? ' expanded' : ''}" data-cat="${card.id}">
     <div class="cat-top">
@@ -169,31 +177,32 @@ export function initOverview({ onEditExpense, onEmpty }) {
 // activity shows those; the budget cards never count them).
 export function renderOverview(budget, expenses, colors = new Map()) {
   authorColors = colors;
+  cardsById = new Map(budget.cards.map(c => [c.id, c]));
   expensesById = new Map(expenses.map(e => [String(e.id), e]));
   sweepable = budget.cards.filter(c => !c.isExtra && !c.emptied && c.leftover > 0);
   cardsEl.innerHTML = budget.cards.map(cardHtml).join('');
 
   const nameById = new Map(budget.cards.map(c => [c.id, c.name]));
   const extraCard = budget.cards.find(c => c.isExtra);
-  const overages = extraCard.overages.map(o => ({ ...o, isOverage: true }));
+  const overages = extraCard.overages.map(o => datedOverage({ ...o, isOverage: true }));
   const recent = [...expenses, ...overages]
-    .sort(newestFirst)
+    .sort(newestPurchaseFirst)
     .slice(0, 5);
 
   recentEl.innerHTML = recent.length
     ? recent.map(e => {
-        if (e.isOverage) return overageRowHtml(e, `${shortDate(e.created_at)} · Auto`);
+        if (e.isOverage) return overageRowHtml(e, `${shortDate(purchaseDate(e))} · Auto`);
         if (e.from_savings) {
           return `<div class="expense-row clickable excluded" data-expense="${e.id}">`
             + `<span class="merchant">${authorDotHtml(e)}${esc(e.merchant || 'Unknown')}<span class="savings-tag">Savings</span></span>`
-            + `<span class="meta">${shortDate(e.created_at)} · Not in budget</span>`
+            + `<span class="meta">${shortDate(purchaseDate(e))} · Not in budget</span>`
             + amountHtml(e)
             + `</div>`;
         }
         const catId = budget.bucketOf(e);
         return `<div class="expense-row clickable" data-cat="${catId}">`
           + `<span class="merchant">${authorDotHtml(e)}${esc(e.merchant || 'Unknown')}</span>`
-          + `<span class="meta">${shortDate(e.created_at)} · ${esc(nameById.get(catId))}</span>`
+          + `<span class="meta">${shortDate(purchaseDate(e))} · ${esc(nameById.get(catId))}</span>`
           + amountHtml(e)
           + `</div>`;
       }).join('')

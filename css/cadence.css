@@ -319,14 +319,22 @@ header.no-period .title-row{margin-bottom:0;}
 .insight-big{font-family:'Unbounded',sans-serif; font-size:24px; font-weight:700;}
 .insight-big.positive{color:var(--ok);}
 .insight-sub{font-size:12px; color:var(--ink-soft); margin:4px 0 14px;}
-.xbars{display:flex; align-items:stretch; gap:4px; height:96px; border-bottom:1px solid var(--glass-border);}
-.xbar-slot{flex:1; min-width:0; display:flex; align-items:flex-end;}
-.xbar{width:100%; padding:0; border:none; border-radius:4px 4px 1px 1px; background:var(--ok);}
-.xbar.neg{background:var(--danger);}
-.xbar.so-far{opacity:.4;}
-.xbar.selected{box-shadow:0 0 0 1.5px var(--ink);}
-.period-labels{display:flex; gap:4px; margin-top:5px;}
-.period-labels span{flex:1; min-width:0; font-size:10px; color:var(--ink-faint); white-space:nowrap; overflow:visible;}
+.pace-chart{display:block; width:100%; height:auto; overflow:visible;}
+.pace-chart text{font-size:9px; fill:var(--ink-faint); font-variant-numeric:tabular-nums;}
+.pace-grid{stroke:var(--glass-border-soft);}
+.pace-area{fill:var(--accent-soft); stroke:none;}
+.pace-even{stroke:var(--ink-faint); stroke-dasharray:3 3;}
+.pace-usual{fill:none; stroke:var(--accent); stroke-width:2; stroke-linejoin:round;}
+.pace-now{fill:none; stroke:var(--ink); stroke-width:2.2; stroke-linejoin:round;}
+.pace-dot{fill:var(--ink);}
+.pace-pick{stroke:var(--ink-soft); stroke-width:1;}
+.pace-pick-usual{fill:var(--accent);}
+.pace-hit{fill:transparent; cursor:pointer;}
+.pace-legend{display:flex; flex-wrap:wrap; gap:4px 14px; margin-top:8px; font-size:11.5px; color:var(--ink-soft);}
+.pace-legend span{display:inline-flex; align-items:center; gap:5px;}
+.pace-key{display:inline-block; width:14px; border-top:2px solid var(--accent);}
+.pace-key.now{border-top-color:var(--ink);}
+.pace-key.even{border-top:2px dashed var(--ink-faint);}
 .insight-detail{font-size:12.5px; color:var(--ink-soft); margin-top:12px; line-height:1.45;}
 .insight-detail b{color:var(--ink); font-weight:600;}
 .insight-pattern{font-size:13px; line-height:1.45; color:var(--ink); margin-top:12px;}
@@ -425,3 +433,10 @@ input, select, textarea{font-size:16px !important;}
 .bill-row.paid .bill-name{text-decoration:none;}
 .bill-row.paid .bill-title{text-decoration:line-through;}
 .bill-note{font-size:11.5px; color:var(--ink-faint); margin-top:2px;}
+
+/* Purchase date on the expense sheet (Today / Yesterday / Pick a day). */
+#dateChips[hidden], #dateChips .chip[hidden], .date-locked[hidden]{display:none;}
+/* The phone's own date picker sits invisibly over "Pick a day", so a tap opens it. */
+.date-pick{position:relative; overflow:hidden; white-space:nowrap;}
+.date-pick input[type=date]{position:absolute; inset:0; width:100%; height:100%; padding:0; border:0; opacity:0; cursor:pointer;}
+.date-locked{padding:11px 14px; border-radius:12px; border:1px solid var(--glass-border); background:var(--glass); color:var(--ink-soft); font-size:14.5px;}

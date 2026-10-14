@@ -3,6 +3,9 @@
 Status (2026-09-26): **done and live.** Read
 `CLAUDE.md` first. No database changes are needed.
 
+**Update (2026-10-14):** "Are we coming out ahead?" was replaced by "When
+does the money go?". See `docs/pace-plan.md`.
+
 ## What the owner asked for
 
 - Replace Trends with **Insights**, as in the mockup, with sections in this

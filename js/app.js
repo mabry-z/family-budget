@@ -420,6 +420,10 @@ initInsights({
     currentStartISO: periodStartISO(currentPeriod()),
     categoryIdOf,
     periodLabel: row => periodRangeLabel(rowToPeriod(row)),
+    periodDates: row => {
+      const period = rowToPeriod(row);
+      return { start: startOf(period), end: addDays(startOf(shiftPeriod(period, 1)), -1) };
+    },
   }),
 });
 
@@ -435,17 +439,35 @@ initExpenseSheet({
   onHideMerchant: key => setMerchantHidden(key, true),
   suggestCategory,
   authorColorOf: userId => (userId ? state.authorColors.get(userId) : null) ?? null,
-  onSave: async ({ id, importId, category_id, ...fields }) => {
+  // The viewed period's days, up to today (a period that hasn't started yet:
+  // all of it), plus the period before, where a new expense may also go.
+  getDateRange: () => {
+    const start = startOf(state.period);
+    const end = addDays(startOf(shiftPeriod(state.period, 1)), -1);
+    const last = today() < start || today() > end ? end : today();
+    const earlier = shiftPeriod(state.period, -1);
+    return {
+      periodStart: toISO(start),
+      max: toISO(last),
+      earlierStart: toISO(startOf(earlier)),
+      earlierLabel: periodRangeLabel(earlier),
+    };
+  },
+  onSave: async ({ id, importId, category_id, spent_on, ...fields }) => {
     const category = state.categories.find(c => c.id === category_id);
     // Keep the text column filled in too, so the old app on main still reads these rows.
-    const row = { ...fields, category_id, category: category.name };
+    const row = { ...fields, category_id, category: category.name, ...(spent_on ? { spent_on } : {}) };
     if (id != null) {
       await db.updateExpense(id, row);
     } else if (importId != null) {
       await addImported(importId, row);
     } else {
-      const p = state.period;
+      // Dated before this period started (e.g. yesterday's receipt on payday): it goes in the period before.
+      const earlier = spent_on && fromISO(spent_on) < startOf(state.period);
+      const p = earlier ? shiftPeriod(state.period, -1) : state.period;
+      if (earlier) await db.ensurePeriod(p);
       await db.addExpense({ ...row, year: p.year, month: p.month, period_start_day: p.startDay });
+      if (earlier) showToast(`Added to ${periodRangeLabel(p)}.`, { ok: true });
     }
     await loadAll();
     loadMerchants();

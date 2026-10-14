@@ -194,11 +194,34 @@ export function groupByPeriod(list, keyOf) {
   return groups;
 }
 
-// What was left in a period's Extra, not counting what it carried in
-// (overages it covered do come off).
-export function extraLeftover(budget) {
-  const extra = budget.cards.find(c => c.isExtra);
-  return extra.budget - budget.carryIn - extra.spent - extra.covered;
+// Pace: the running total of spending through a pay period, day by day.
+// periods: [{ length (days), current, today (day number, current only),
+//             spends: [{ day (1 = payday), amount (refunds negative) }] }]
+// usual: per day, the average running total of the finished periods (null
+// if none); a shorter period counts with its final total on later days.
+// now: the current period's running total up to today (null if none).
+export function paceLines(periods) {
+  const running = p => {
+    const daily = new Array(p.length).fill(0);
+    for (const s of p.spends) daily[Math.min(Math.max(s.day, 1), p.length) - 1] += s.amount;
+    let total = 0;
+    return daily.map(v => (total += v));
+  };
+  const finished = periods.filter(p => !p.current).map(running);
+  const days = Math.max(0, ...finished.map(r => r.length));
+  const usual = finished.length
+    ? Array.from({ length: days }, (_, i) => sum(finished, r => r[Math.min(i, r.length - 1)]) / finished.length)
+    : null;
+  const current = periods.find(p => p.current);
+  const now = current ? running(current).slice(0, Math.min(Math.max(current.today, 1), current.length)) : null;
+  return { usual, now };
+}
+
+// The first day the usual running total reaches half its final total.
+export function halfwayDay(usual) {
+  const total = usual?.at(-1) ?? 0;
+  if (total <= 0) return null;
+  return usual.findIndex(v => v >= total / 2) + 1;
 }
 
 export const NEAR_BUDGET = 10; // within this many dollars (and not over) = "on budget"
