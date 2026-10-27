@@ -1,13 +1,19 @@
-// Sends a phone notification for a new card purchase (see
-// docs/notifications-plan.md). Pasted into the Supabase dashboard by hand as
-// the Edge Function "notify-purchase", with "Verify JWT" turned off.
+// Sends phone notifications: new card purchases (see
+// docs/notifications-plan.md) and chores (docs/chores-plan.md). Pasted into
+// the Supabase dashboard by hand as the Edge Function "notify-purchase",
+// with "Verify JWT" turned off.
 //
-// Two ways in:
+// Ways in:
 //   { import_id }            — from the card_imports trigger (migration 009).
 //                              Anyone can call this, so it trusts nothing but
 //                              the id: it only announces a purchase that's
 //                              still pending, is less than 15 minutes old and
 //                              hasn't been announced, and marks it announced.
+//                              Parents' phones only — never the kids'.
+//   { chore_task_id }        — from the chore_tasks trigger (migration 013):
+//                              done → both parents; approved / sent back →
+//                              the kid. Same rules: recent, announced once.
+//   { ledger_id }            — a bonus (migration 013) → the kid.
 //   { test: true, endpoint } — Settings → "Send a test", signed in. Only goes
 //                              to that person's own phone.
 //
@@ -164,7 +170,19 @@ async function sendAll(subs, message) {
   return sent;
 }
 
-// ---------- The two ways in ----------
+// ---------- Who gets what ----------
+
+async function parentIds(householdId) {
+  const rows = await rest(`household_members?household_id=${eq(householdId)}&role=in.(owner,member)&select=user_id`);
+  return (rows ?? []).map(r => r.user_id);
+}
+
+async function subsFor(userIds) {
+  if (!userIds.length) return [];
+  return await rest(`push_subscriptions?user_id=in.(${userIds.map(encodeURIComponent).join(',')})&select=id,endpoint,p256dh,auth`) ?? [];
+}
+
+// ---------- The ways in ----------
 
 // Whole dollars, as the app shows money.
 const dollars = cents => '$' + Math.max(1, Math.round(cents / 100)).toLocaleString('en-US');
@@ -179,7 +197,7 @@ async function announcePurchase(importId) {
   const imp = rows?.[0];
   if (!imp) return reply({ sent: 0, reason: 'nothing to announce' });
 
-  const subs = await rest(`push_subscriptions?household_id=${eq(imp.household_id)}&select=id,endpoint,p256dh,auth`);
+  const subs = await subsFor(await parentIds(imp.household_id));
   // Star alerts have no store: "Star Card · $5", "Tap to add the store".
   const message = imp.unreadable
     ? { title: `Couldn’t read a ${imp.card} alert`, body: 'Tap to check it' }
@@ -187,6 +205,71 @@ async function announcePurchase(importId) {
       ? { title: `${imp.merchant} · ${dollars(imp.amount_cents)}`, body: `${imp.card} · Tap to review` }
       : { title: `${imp.card} · ${dollars(imp.amount_cents)}`, body: 'Tap to add the store' };
   const sent = await sendAll(subs ?? [], { ...message, tag: `import-${imp.id}`, importId: imp.id });
+  return reply({ sent });
+}
+
+// Chore money is whole dollars already.
+const wholeDollars = n => '$' + Number(n).toLocaleString('en-US');
+
+async function kidName(userId) {
+  const rows = await rest(`household_members?user_id=${eq(userId)}&select=display_name`);
+  return rows?.[0]?.display_name || 'Your kid';
+}
+
+async function announceChore(taskId) {
+  const cutoff = new Date(Date.now() - FRESH_MS).toISOString();
+  const found = await rest(`chore_tasks?id=${eq(taskId)}&select=status`);
+  const status = found?.[0]?.status;
+  if (!['done', 'approved', 'sent_back'].includes(status)) return reply({ sent: 0, reason: 'nothing to announce' });
+
+  // Claims this change: only one call gets the row back.
+  const rows = await rest(
+    `chore_tasks?id=${eq(taskId)}&status=${eq(status)}&updated_at=gt.${encodeURIComponent(cutoff)}`
+      + `&or=(notified_status.is.null,notified_status.neq.${status})`
+      + '&select=id,household_id,kid_id,status,amount,note,chore:chores(title)',
+    { method: 'PATCH', body: { notified_status: status }, prefer: 'return=representation' },
+  );
+  const task = rows?.[0];
+  if (!task) return reply({ sent: 0, reason: 'nothing to announce' });
+
+  const title = task.chore?.title ?? 'A chore';
+  const data = { tag: `chore-${task.id}-${status}`, choreTaskId: task.id };
+  let subs;
+  let message;
+  if (status === 'done') {
+    subs = await subsFor(await parentIds(task.household_id));
+    message = {
+      title: `${await kidName(task.kid_id)} finished ${title}`,
+      body: task.amount > 0 ? `${wholeDollars(task.amount)} · Tap to review` : 'Tap to review',
+    };
+  } else if (status === 'approved') {
+    subs = await subsFor([task.kid_id]);
+    message = task.amount > 0
+      ? { title: `Approved! +${wholeDollars(task.amount)}`, body: title }
+      : { title: 'Approved!', body: title };
+  } else {
+    subs = await subsFor([task.kid_id]);
+    message = { title: `Take another look: ${title}`, body: task.note || 'A parent sent it back.' };
+  }
+  const sent = await sendAll(subs, { ...message, ...data });
+  return reply({ sent });
+}
+
+async function announceBonus(ledgerId) {
+  const cutoff = new Date(Date.now() - FRESH_MS).toISOString();
+  const rows = await rest(
+    `kid_ledger?id=${eq(ledgerId)}&kind=eq.bonus&notified_at=is.null&created_at=gt.${encodeURIComponent(cutoff)}`
+      + '&select=id,kid_id,amount,note',
+    { method: 'PATCH', body: { notified_at: new Date().toISOString() }, prefer: 'return=representation' },
+  );
+  const entry = rows?.[0];
+  if (!entry) return reply({ sent: 0, reason: 'nothing to announce' });
+  const sent = await sendAll(await subsFor([entry.kid_id]), {
+    title: `Bonus! +${wholeDollars(entry.amount)}`,
+    body: entry.note || 'A bonus from your parents',
+    tag: `bonus-${entry.id}`,
+    open: 'chores',
+  });
   return reply({ sent });
 }
 
@@ -200,9 +283,12 @@ async function sendTest(req, endpoint) {
   const subs = await rest(`push_subscriptions?user_id=${eq(user.id)}&endpoint=${eq(endpoint)}&select=id,endpoint,p256dh,auth`);
   if (!subs?.length) return reply({ error: 'Notifications aren’t on for this phone.' }, 404);
 
+  const me = await rest(`household_members?user_id=${eq(user.id)}&select=role`);
   const sent = await sendAll(subs, {
     title: 'Notifications are on',
-    body: 'New card purchases will show up here.',
+    body: me?.[0]?.role === 'kid'
+      ? 'You’ll hear here when a parent checks your chores.'
+      : 'New card purchases and finished chores will show up here.',
     tag: 'test',
   });
   if (!sent) return reply({ error: 'The phone’s notification service turned it away. Try turning notifications off and on.' }, 502);
@@ -217,6 +303,10 @@ Deno.serve(async req => {
     if (body.test && typeof body.endpoint === 'string') return await sendTest(req, body.endpoint);
     const importId = Number(body.import_id);
     if (Number.isInteger(importId) && importId > 0) return await announcePurchase(importId);
+    const taskId = Number(body.chore_task_id);
+    if (Number.isInteger(taskId) && taskId > 0) return await announceChore(taskId);
+    const ledgerId = Number(body.ledger_id);
+    if (Number.isInteger(ledgerId) && ledgerId > 0) return await announceBonus(ledgerId);
     return reply({ error: 'Nothing to do' }, 400);
   } catch (err) {
     console.error(err);

@@ -103,3 +103,11 @@ export function onReviewRequest(callback) {
     if (e.data?.type === 'review-import') callback(e.data.importId);
   });
 }
+
+// Same, for a chore notification (taskId may be null, e.g. a bonus).
+export function onChoresRequest(callback) {
+  if (!('serviceWorker' in navigator)) return;
+  navigator.serviceWorker.addEventListener('message', e => {
+    if (e.data?.type === 'open-chores') callback(e.data.taskId);
+  });
+}

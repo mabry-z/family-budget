@@ -7,7 +7,7 @@ import {
 } from './budget.js';
 import { merchantIndex, suggestMerchants, isSuggested } from './merchants.js';
 import { today, toISO, fromISO, addDays, rangeLabel, expectedPayday } from './paydays.js';
-import { showToast, errorMessage } from './ui/dom.js';
+import { showToast, errorMessage, openSheet } from './ui/dom.js';
 import { initOverview, renderOverview } from './ui/overview.js';
 import { initBills, renderBills } from './ui/bills.js';
 import { renderSummary } from './ui/summary.js';
@@ -22,7 +22,9 @@ import { initStoresSheet } from './ui/stores-sheet.js';
 import { initImports, renderImports, importDollars } from './ui/imports.js';
 import { merchantKey, matchBill } from './merchants.js';
 import * as push from './notifications.js';
-import { initNotifications, refreshNotifications } from './ui/notifications.js';
+import { initNotifications, refreshNotifications, setNotificationsForKid } from './ui/notifications.js';
+import { initChores, loadChores, openChoreSheet, showTask } from './ui/chores.js';
+import { initKid, loadKid } from './ui/kid.js';
 
 // Start asking about the next paycheck this many days before its expected
 // date — the bank usually deposits a day or two early.
@@ -46,6 +48,7 @@ const state = {
   hiddenMerchants: new Set(), // stores hidden from suggestions (merchantKey()s)
   imports: [],           // card alert purchases waiting for review (any period)
   activeScreen: 'overview',
+  kidMode: false,        // signed in as a kid: only their chores (js/ui/kid.js)
 };
 
 const periodLabelEl = document.getElementById('periodLabel');
@@ -305,6 +308,7 @@ let deployStamp = null;
 fetchDeployStamp().then(stamp => { deployStamp = stamp; });
 
 async function refreshOnReturn() {
+  if (state.kidMode) return refreshKidOnReturn();
   if (!state.budget || Date.now() - lastLoadedAt < REFRESH_MIN_GAP_MS) return;
   if (document.querySelector('.sheet-backdrop.open')) return; // don't disturb a sheet in progress
   lastLoadedAt = Date.now();
@@ -326,7 +330,20 @@ async function refreshOnReturn() {
   if (wasCurrent) state.period = currentPeriod();
   await loadAll({ quiet: true });
   loadMerchants();
+  loadChores({ quiet: true });
   askAboutPayday();
+}
+
+async function refreshKidOnReturn() {
+  if (Date.now() - lastLoadedAt < REFRESH_MIN_GAP_MS) return;
+  if (document.querySelector('.sheet-backdrop.open')) return;
+  lastLoadedAt = Date.now();
+  const stamp = await fetchDeployStamp();
+  if (stamp && deployStamp && stamp !== deployStamp) {
+    window.location.reload();
+    return;
+  }
+  await loadKid({ quiet: true });
 }
 
 document.addEventListener('visibilitychange', () => {
@@ -349,23 +366,27 @@ periodLabelEl.addEventListener('keydown', e => {
   if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); goToPeriod(currentPeriod()); }
 });
 
-// The header shows the tab's name. Insights spans many periods, so it has no period bar.
-const SCREEN_TITLES = { overview: 'Cadence', bills: 'Bills', insights: 'Insights', summary: 'Summary' };
+// The header shows the tab's name. Insights spans many periods and Chores
+// has none, so neither has a period bar.
+const SCREEN_TITLES = { overview: 'Cadence', bills: 'Bills', insights: 'Insights', summary: 'Summary', chores: 'Chores' };
+const NO_PERIOD = new Set(['insights', 'chores']);
 const headerEl = document.getElementById('appHeader');
 const screenTitleEl = document.getElementById('screenTitle');
 
+function showScreen(screen) {
+  state.activeScreen = screen;
+  screenTitleEl.textContent = SCREEN_TITLES[screen];
+  headerEl.classList.toggle('no-period', NO_PERIOD.has(screen));
+  document.querySelectorAll('.tab').forEach(t => t.classList.toggle('active', t.dataset.screen === screen));
+  document.querySelectorAll('.screen').forEach(s => s.classList.toggle('active', s.id === `screen-${screen}`));
+  fabEl.setAttribute('aria-label', screen === 'chores' ? 'Add chore' : 'Add expense');
+  if (screen === 'insights' && state.budget) renderInsights();
+  if (screen === 'chores') loadChores({ quiet: true });
+  showFab();
+}
+
 document.querySelectorAll('.tab').forEach(tab => {
-  tab.addEventListener('click', () => {
-    state.activeScreen = tab.dataset.screen;
-    screenTitleEl.textContent = SCREEN_TITLES[state.activeScreen];
-    headerEl.classList.toggle('no-period', state.activeScreen === 'insights');
-    document.querySelectorAll('.tab').forEach(t => t.classList.toggle('active', t === tab));
-    document.querySelectorAll('.screen').forEach(s => {
-      s.classList.toggle('active', s.id === `screen-${state.activeScreen}`);
-    });
-    if (state.activeScreen === 'insights' && state.budget) renderInsights();
-    showFab();
-  });
+  tab.addEventListener('click', () => showScreen(tab.dataset.screen));
 });
 
 // The + button tucks away while scrolling down (so it doesn't cover the last
@@ -579,15 +600,42 @@ initPaydaySheet({
 });
 
 document.getElementById('openExpense').addEventListener('click', () => {
-  if (state.budget) openExpenseSheet();
+  if (state.activeScreen === 'chores') openChoreSheet();
+  else if (state.budget) openExpenseSheet();
 });
 document.getElementById('openSettings').addEventListener('click', () => {
-  if (state.budget) openSettingsSheet();
+  // A kid's Settings: only appearance, notifications, PIN and sign out (the
+  // budget parts are hidden by body.kid-mode).
+  if (state.kidMode) openSheet(document.getElementById('settingsBackdrop'));
+  else if (state.budget) openSettingsSheet();
   refreshNotifications(); // permission may have changed in the phone's Settings
 });
 
 initAppearance();
 initNotifications();
+
+initChores();
+
+// A tapped chore notification (see sw.js): parents go to Chores and see the
+// one that's waiting; a kid's screen just refreshes.
+async function openChoresFromNotification(taskId) {
+  if (state.kidMode) return loadKid({ quiet: true });
+  if (!state.budget) return;
+  showScreen('chores');
+  await loadChores({ quiet: true });
+  if (taskId && taskId !== 'open') showTask(taskId);
+}
+push.onChoresRequest(openChoresFromNotification);
+
+// Cadence opened by tapping a chore notification: ?chores=<task id>.
+function choresFromLink() {
+  const url = new URL(window.location.href);
+  const id = url.searchParams.get('chores');
+  if (!id) return;
+  url.searchParams.delete('chores');
+  history.replaceState(null, '', url.pathname + url.search + url.hash);
+  openChoresFromNotification(id);
+}
 
 initStoresSheet({
   getStores: storeLists,
@@ -636,6 +684,7 @@ async function enterApp(session) {
     showToast(`Couldn't load your household: ${errorMessage(err)}`);
   }
   renderHousehold(household, session.user.email);
+  if (household?.role === 'kid') return enterKidApp(household);
   state.authorColors = new Map(
     (household?.members ?? [])
       .filter(m => m.user_id)
@@ -651,9 +700,31 @@ async function enterApp(session) {
   state.period = currentPeriod();
   await loadAll();
   loadMerchants();
+  loadChores({ quiet: true });
   askAboutPayday();
   push.resync();
   reviewFromLink();
+  choresFromLink();
+}
+
+// A kid: their chores and nothing else (see js/ui/kid.js).
+async function enterKidApp(household) {
+  state.kidMode = true;
+  document.body.classList.add('kid-mode');
+  screenTitleEl.textContent = `Hi ${household.display_name ?? 'there'}`;
+  headerEl.classList.add('no-period');
+  document.querySelectorAll('.screen').forEach(s => s.classList.toggle('active', s.id === 'screen-kid'));
+  setNotificationsForKid();
+  initKid(household);
+  hideGate();
+  await loadKid();
+  lastLoadedAt = Date.now();
+  push.resync();
+  const url = new URL(window.location.href);
+  if (url.searchParams.has('chores')) {
+    url.searchParams.delete('chores');
+    history.replaceState(null, '', url.pathname + url.search + url.hash);
+  }
 }
 
 (async function start() {

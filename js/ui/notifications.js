@@ -6,22 +6,25 @@ import { errorMessage, showToast } from './dom.js';
 
 const el = document.getElementById('notificationsInfo');
 
+// Parents get card purchases and finished chores; kids only hear about
+// their own chores (see setNotificationsForKid).
+let what = 'Purchases and chores';
 const HINTS = {
-  off: 'Get a notification on this phone when a new card purchase comes in.',
+  off: 'Get a notification on this phone when a card purchase comes in or a kid finishes a chore.',
   blocked: 'Turn them back on in your phone’s Settings → Notifications → Cadence.',
   'home-screen': 'Open Cadence from its home-screen icon to turn on notifications.',
   unsupported: 'This browser can’t show notifications from Cadence.',
 };
 
 function statusCard(label, cls) {
-  return `<div class="household-card"><div class="member-row"><span>Card purchases</span>`
+  return `<div class="household-card"><div class="member-row"><span>${what}</span>`
     + `<span class="notify-status ${cls}">${label}</span></div></div>`;
 }
 
 function render(state) {
   if (state === 'on') {
     el.innerHTML = `<div class="household-card">
-        <div class="member-row"><span>Card purchases</span><span class="notify-status on">On for this phone</span></div>
+        <div class="member-row"><span>${what}</span><span class="notify-status on">On for this phone</span></div>
         <div class="member-row notify-actions">
           <button type="button" class="notify-link" data-action="test">Send a test</button>
           <button type="button" class="notify-link" data-action="off">Turn off</button>
@@ -36,6 +39,13 @@ function render(state) {
   }
   const label = state === 'blocked' ? 'Blocked' : 'Not available here';
   el.innerHTML = statusCard(label, 'warn') + `<div class="hint">${HINTS[state]}</div>`;
+}
+
+export function setNotificationsForKid() {
+  what = 'My chores';
+  HINTS.off = 'Get a notification here when a parent checks your chores or gives you a bonus.';
+  HINTS.blocked = 'Turn them back on in Settings → Notifications → Cadence.';
+  refreshNotifications();
 }
 
 export async function refreshNotifications() {

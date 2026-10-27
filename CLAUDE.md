@@ -39,6 +39,9 @@ Static HTML/CSS/JS (ES modules, no build step) served by GitHub Pages from
 - `docs/card-imports-plan.md` — card alert emails → Cadence, "Paid from
   savings", and the one-time setup steps.
 - `docs/notifications-plan.md` — card purchase notifications and setup.
+- `docs/chores-plan.md` — Chores tab, kid accounts (name + PIN), kid mode
+  on iPads, and setup. `js/chores.js` (pure helpers), `js/ui/chores.js`
+  (parents' tab and sheets), `js/ui/kid.js` (the kid's whole app).
 - `supabase/functions/notify-purchase/index.ts` — Edge Function that sends
   them; pasted into the dashboard by hand (Verify JWT off; secrets
   `VAPID_PUBLIC_KEY`, `VAPID_PRIVATE_KEY`).
@@ -102,6 +105,17 @@ Static HTML/CSS/JS (ES modules, no build step) served by GitHub Pages from
 - Functions: `ensure_period` (creates a period from defaults the first time
   it's opened), `save_settings`, `start_period`.
 - `budget_settings` is the old app's table — no longer used.
+- Kids (migration 013): `household_members.role = 'kid'` + `display_name`.
+  **`current_household_id()` answers only for owner/member**, so kids get
+  nothing from any budget table, view or function; `member_household_id()`
+  answers for everyone and is used by chores and `push_subscriptions`.
+  `chores`, `chore_tasks` (one per due day; open | done | approved |
+  sent_back | expired; `kid_id` null = "Anyone", claimed by the first kid
+  to mark it done), `kid_ledger` (balance = sum, never stored),
+  `kid_goals`, view `kid_balances`. All read-only to the app (a kid sees
+  only their own rows); every change is a function (`save_chore`,
+  `mark_chore_done`, `review_chore`, `pay_out`, `add_bonus`, …) that checks
+  who's asking.
 
 ## Rules the app must keep
 
@@ -153,6 +167,10 @@ Static HTML/CSS/JS (ES modules, no build step) served by GitHub Pages from
   period the purchase happened in, with the cardholder's dot.
 - Notifications: every phone that turned them on gets every card purchase,
   once ("Target · $42" / "Chase · Tap to review"); tapping opens its review.
+- Chores never touch the budget. Missed repeating chores expire and pay
+  nothing; nothing is ever taken off. Balances only go down by Pay out.
+  Card purchase notifications go to parents only; kids get their own
+  chore results and bonuses.
 - Cards: Chase, AMEX, Star Card (label "Star"), USAA, Other. Adding one means
   updating `js/config.js` and the `expenses_card_check` constraint.
 
@@ -166,7 +184,7 @@ Static HTML/CSS/JS (ES modules, no build step) served by GitHub Pages from
   testing — the owner tests anything that writes. Browsing to a period that
   doesn't exist yet creates it, so stay on existing periods.
 - **Migrations are run by the owner** in the Supabase SQL editor. Write them
-  to `supabase/migrations/NNN_name.sql` (next number: **013**), make them
+  to `supabase/migrations/NNN_name.sql` (next number: **014**), make them
   safe to re-run, put the file on the clipboard
   (`Get-Content -Raw -Encoding UTF8 <file> | Set-Clipboard` — without
   `-Encoding UTF8`, Windows PowerShell garbles "·", "’", "—" into "Â·" etc.) and give short click-by-click

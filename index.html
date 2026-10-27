@@ -22,18 +22,19 @@
   <div class="gate-brand"><div class="brand-mark">C</div><div class="wordmark">Cadence</div></div>
 
   <form class="gate-card" id="signInForm" novalidate hidden>
-    <h2>Sign in</h2>
+    <h2 id="signInTitle">Sign in</h2>
     <div class="field">
-      <label for="signInEmail">Email</label>
+      <label for="signInEmail" id="signInEmailLabel">Email</label>
       <input type="email" id="signInEmail" autocomplete="username" autocapitalize="off" spellcheck="false">
     </div>
     <div class="field">
-      <label for="signInPassword">Password</label>
+      <label for="signInPassword" id="signInPasswordLabel">Password</label>
       <input type="password" id="signInPassword" autocomplete="current-password">
     </div>
     <div class="form-error" id="signInError" hidden></div>
     <button type="submit" class="save-btn" id="signInSubmit">Sign in</button>
     <button type="button" class="link-btn" id="forgotPassword">Forgot password?</button>
+    <button type="button" class="link-btn" id="kidSignInToggle">Kids: sign in with your name</button>
     <p class="hint gate-hint" id="forgotHint" hidden>Ask your household’s owner to reset it. Once you’re signed in, you can change your password in Settings.</p>
   </form>
 
@@ -85,6 +86,14 @@
     <div class="summary-card" id="budgetSummary"></div>
     <div class="summary-card" id="cardSummary"></div>
   </div>
+
+  <div class="screen" id="screen-chores">
+    <div id="choresBody"></div>
+  </div>
+
+  <div class="screen" id="screen-kid">
+    <div id="kidBody"></div>
+  </div>
 </main>
 
 <button class="fab" id="openExpense" aria-label="Add expense">+</button>
@@ -94,6 +103,7 @@
   <button class="tab" data-screen="bills"><span class="ic">☑</span>Bills</button>
   <button class="tab" data-screen="insights"><span class="ic">⤴</span>Insights</button>
   <button class="tab" data-screen="summary"><span class="ic">≡</span>Summary</button>
+  <button class="tab" data-screen="chores"><span class="ic">✦<span class="tab-badge" id="choresBadge" hidden></span></span>Chores</button>
 </nav>
 
 <div class="sheet-backdrop" id="expenseBackdrop">
@@ -158,6 +168,7 @@
   <form class="sheet tall" id="settingsForm" novalidate>
     <div class="grabber"></div>
     <div class="sheet-head"><h2>Settings</h2><button type="button" class="sheet-close" data-close aria-label="Close">✕</button></div>
+    <div class="budget-only">
     <div class="scope-note" id="settingsScope"></div>
 
     <div class="field" id="startsOnField">
@@ -187,6 +198,7 @@
 
     <div class="form-error" id="settingsError" hidden></div>
     <button type="submit" class="save-btn" id="settingsSubmit" style="margin-top:10px;">Save settings</button>
+    </div>
 
     <div class="section-label appearance-label">Appearance</div>
     <div class="toggle-row" id="appearanceChips">
@@ -199,8 +211,10 @@
     <div class="section-label notifications-label">Notifications</div>
     <div id="notificationsInfo"></div>
 
+    <div class="budget-only">
     <div class="section-label stores-label">Store suggestions</div>
     <button type="button" class="secondary-btn" id="openStores">Manage store suggestions</button>
+    </div>
 
     <div class="section-label household-label">Household</div>
     <div class="household-card" id="householdInfo"></div>
@@ -224,13 +238,13 @@
     <div class="sheet-head"><h2>Change password</h2><button type="button" class="sheet-close" data-close aria-label="Close">✕</button></div>
     <input type="email" id="passwordUsername" autocomplete="username" hidden>
     <div class="field">
-      <label for="newPassword">New password</label>
+      <label for="newPassword" id="newPasswordLabel">New password</label>
       <input type="password" id="newPassword" autocomplete="new-password">
     </div>
     <div class="field">
       <label for="confirmPassword">Type it again</label>
       <input type="password" id="confirmPassword" autocomplete="new-password">
-      <div class="hint">At least 8 characters. You’ll stay signed in on this phone.</div>
+      <div class="hint" id="passwordHint">At least 8 characters. You’ll stay signed in on this phone.</div>
     </div>
     <div class="form-error" id="passwordError" hidden></div>
     <button type="submit" class="save-btn" id="passwordSubmit">Change password</button>
@@ -250,6 +264,104 @@
     <div class="form-error" id="paydayError" hidden></div>
     <button type="submit" class="save-btn" id="paydaySubmit">Start new period</button>
     <button type="button" class="secondary-btn" id="paydayNotYet">Not yet</button>
+  </form>
+</div>
+
+<!-- Chores (parents): add or change a chore -->
+<div class="sheet-backdrop" id="choreBackdrop">
+  <form class="sheet" id="choreForm" novalidate>
+    <div class="grabber"></div>
+    <div class="sheet-head"><h2 id="choreTitle">Add chore</h2><button type="button" class="sheet-close" data-close aria-label="Close">✕</button></div>
+    <div class="field">
+      <label for="choreName">Chore</label>
+      <input type="text" id="choreName" maxlength="80" autocomplete="off" placeholder="e.g. Unload the dishwasher">
+    </div>
+    <div class="field">
+      <label>For</label>
+      <div class="toggle-row" id="choreKidChips"></div>
+      <div class="hint" id="choreKidHint" hidden>Shows on every kid’s list. The first to finish it gets the money.</div>
+    </div>
+    <div class="field">
+      <label for="choreAmount">Pays</label>
+      <div class="amount-field"><span>$</span><input type="text" id="choreAmount" inputmode="numeric" autocomplete="off" placeholder="2"></div>
+      <div class="hint">Whole dollars. $0 is fine for chores that don’t pay.</div>
+    </div>
+    <div class="field">
+      <label>Repeats</label>
+      <div class="toggle-row" id="choreRepeatChips">
+        <button type="button" class="chip" data-value="once">One time</button>
+        <button type="button" class="chip" data-value="daily">Every day</button>
+        <button type="button" class="chip" data-value="weekly">Weekly</button>
+      </div>
+      <div class="weekday-row" id="choreWeekdays" hidden></div>
+      <div class="hint" id="choreRepeatHint"></div>
+    </div>
+    <div class="form-error" id="choreError" hidden></div>
+    <button type="submit" class="save-btn" id="choreSubmit">Add chore</button>
+    <button type="button" class="delete-btn" id="choreDelete" hidden>Delete chore</button>
+  </form>
+</div>
+
+<!-- Chores (parents): send a finished chore back -->
+<div class="sheet-backdrop" id="sendBackBackdrop">
+  <form class="sheet" id="sendBackForm" novalidate>
+    <div class="grabber"></div>
+    <div class="sheet-head"><h2>Send back</h2><button type="button" class="sheet-close" data-close aria-label="Close">✕</button></div>
+    <p class="sheet-text" id="sendBackWhat"></p>
+    <div class="field">
+      <label for="sendBackNote">Note (optional)</label>
+      <input type="text" id="sendBackNote" maxlength="140" autocomplete="off" placeholder="e.g. Pots are still in the sink">
+      <div class="hint">They’ll see it next to the chore. No money changes.</div>
+    </div>
+    <div class="form-error" id="sendBackError" hidden></div>
+    <button type="submit" class="save-btn" id="sendBackSubmit">Send back</button>
+  </form>
+</div>
+
+<!-- Chores (parents): a kid's money -->
+<div class="sheet-backdrop" id="kidMoneyBackdrop">
+  <form class="sheet tall" id="kidMoneyForm" novalidate>
+    <div class="grabber"></div>
+    <div class="sheet-head"><h2 id="kidMoneyTitle"></h2><button type="button" class="sheet-close" data-close aria-label="Close">✕</button></div>
+    <div class="money-head" id="kidMoneyHead"></div>
+    <div class="field">
+      <div class="toggle-row" id="moneyKindChips">
+        <button type="button" class="chip selected" data-value="payout">Pay out</button>
+        <button type="button" class="chip" data-value="bonus">Bonus</button>
+      </div>
+    </div>
+    <div class="field">
+      <label for="moneyAmount" id="moneyAmountLabel">Amount</label>
+      <div class="amount-field"><span>$</span><input type="text" id="moneyAmount" inputmode="numeric" autocomplete="off"></div>
+      <div class="hint" id="moneyHint"></div>
+    </div>
+    <div class="field">
+      <label for="moneyNote">Note (optional)</label>
+      <input type="text" id="moneyNote" maxlength="140" autocomplete="off">
+    </div>
+    <div class="form-error" id="moneyError" hidden></div>
+    <button type="submit" class="save-btn" id="moneySubmit">Pay out</button>
+    <div class="section-label">History</div>
+    <div class="list-card" id="kidHistory"></div>
+  </form>
+</div>
+
+<!-- Chores (kids): savings goal -->
+<div class="sheet-backdrop" id="goalBackdrop">
+  <form class="sheet" id="goalForm" novalidate>
+    <div class="grabber"></div>
+    <div class="sheet-head"><h2>My goal</h2><button type="button" class="sheet-close" data-close aria-label="Close">✕</button></div>
+    <div class="field">
+      <label for="goalName">What are you saving for?</label>
+      <input type="text" id="goalName" maxlength="60" autocomplete="off" placeholder="e.g. Lego castle">
+    </div>
+    <div class="field">
+      <label for="goalTarget">How much does it cost?</label>
+      <div class="amount-field"><span>$</span><input type="text" id="goalTarget" inputmode="numeric" autocomplete="off" placeholder="40"></div>
+    </div>
+    <div class="form-error" id="goalError" hidden></div>
+    <button type="submit" class="save-btn" id="goalSubmit">Save goal</button>
+    <button type="button" class="delete-btn" id="goalClear" hidden>Remove goal</button>
   </form>
 </div>
 

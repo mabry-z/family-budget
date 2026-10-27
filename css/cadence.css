@@ -440,3 +440,126 @@ input, select, textarea{font-size:16px !important;}
 .date-pick{position:relative; overflow:hidden; white-space:nowrap;}
 .date-pick input[type=date]{position:absolute; inset:0; width:100%; height:100%; padding:0; border:0; opacity:0; cursor:pointer;}
 .date-locked{padding:11px 14px; border-radius:12px; border:1px solid var(--glass-border); background:var(--glass); color:var(--ink-soft); font-size:14.5px;}
+
+/* ---------- Chores (see docs/chores-plan.md) ---------- */
+.tab .ic{position:relative;}
+.tab-badge{
+  position:absolute; top:-5px; left:calc(100% - 2px); min-width:16px; height:16px; padding:0 4px; border-radius:8px;
+  background:var(--danger); color:var(--on-accent); font-size:10px; font-weight:600; line-height:16px; text-align:center;
+}
+.tab-badge[hidden]{display:none;}
+.kid-dot{display:inline-block; width:8px; height:8px; border-radius:50%; margin-right:6px; vertical-align:0;}
+.count-pill{font-size:12px; font-weight:600; color:var(--on-accent); background:var(--accent); border-radius:999px; padding:1px 8px;}
+
+/* Parents: waiting for review */
+.chores-waiting{margin-bottom:12px;}
+.wait-row{display:grid; grid-template-columns:1fr auto; gap:6px 10px; padding:12px 0 2px; margin-top:10px; border-top:1px solid var(--glass-border-soft);}
+.wait-row.flash{animation:flash 1.6s ease;}
+@keyframes flash{0%,40%{background:var(--accent-soft);} 100%{background:transparent;}}
+.wait-title{font-size:14.5px; font-weight:500;}
+.wait-meta, .todo-meta{font-size:12px; color:var(--ink-faint); margin-top:2px;}
+.wait-amt{font-size:15px; font-weight:600; align-self:center;}
+.wait-actions{grid-column:1 / -1; display:flex; gap:8px;}
+.wait-actions .row-btn{flex:1; padding:9px 12px; font-size:13.5px;}
+.row-btn.approve{background:var(--accent-soft); border-color:var(--button-line); color:var(--ink); font-weight:500;}
+
+/* Parents: each kid's money */
+.kid-cards{display:grid; grid-template-columns:repeat(2, minmax(0, 1fr)); gap:12px; margin-bottom:12px;}
+.kid-card{
+  text-align:left; font:inherit; color:var(--ink);
+  background:var(--glass); border:1px solid var(--glass-border); border-radius:20px; padding:14px 16px;
+  backdrop-filter:blur(18px) saturate(150%); -webkit-backdrop-filter:blur(18px) saturate(150%);
+  box-shadow:var(--card-shadow);
+}
+.kid-card-name{font-size:14px; font-weight:500;}
+.kid-card-balance{font-size:26px; font-weight:600; letter-spacing:-0.4px; margin:4px 0 6px;}
+.kid-card-goal{font-size:11.5px; color:var(--ink-soft); margin-bottom:6px; overflow:hidden; text-overflow:ellipsis;}
+.bar-track.mini{height:4px; margin-bottom:8px;}
+.kid-card-link{font-size:11.5px; color:var(--accent);}
+
+/* Parents: to do and all chores */
+.chores-card + .chores-card{margin-top:12px;}
+.todo-row, .chore-row{
+  display:flex; align-items:center; gap:12px; width:100%; padding:11px 0;
+  border:none; border-bottom:1px solid var(--glass-border-soft); background:none; font:inherit; color:var(--ink); text-align:left; cursor:pointer;
+}
+.todo-row:last-of-type, .chore-row:last-of-type{border-bottom:none;}
+.todo-text{flex:1; min-width:0;}
+.todo-title{font-size:14.5px;}
+.todo-note{font-size:12px; color:var(--warn); margin-top:3px;}
+.todo-amt{font-size:14px; font-weight:500; flex-shrink:0;}
+.chore-row .go{color:var(--ink-faint); font-size:14px;}
+.todo-row .check{cursor:pointer;}
+.todo-row.arming .check{border-color:var(--accent); background:var(--accent-soft);}
+.chores-add{margin:12px 0 0;}
+
+/* Add/edit chore sheet */
+.weekday-row{display:flex; gap:5px; margin-top:10px;}
+.weekday-row[hidden]{display:none;}
+.day-chip{flex:1; padding:8px 0; font-size:12.5px; text-align:center;}
+#choreKidChips .chip{flex:1;}
+
+/* Kid money sheet */
+.money-head{text-align:center; margin-bottom:16px;}
+.money-head .left-amount{margin-bottom:8px;}
+.money-head .bar-track{margin-top:6px;}
+.ledger-row{display:flex; align-items:center; gap:10px; padding:10px 0; border-bottom:1px solid var(--glass-border-soft); font-size:14px;}
+.ledger-row:last-child{border-bottom:none;}
+.ledger-text{flex:1; min-width:0;}
+.ledger-amt{font-weight:500;}
+.ledger-amt.plus, .kid-history .plus, .kid-row-amt.plus{color:var(--ok);}
+.ledger-row .remove-btn{width:26px; height:26px; font-size:12px;}
+.remove-btn.armed{border-color:var(--danger-line); color:var(--danger);}
+.delete-btn.armed{background:var(--danger); color:var(--on-accent);}
+
+/* ---------- Kid mode: their chores only, roomy on an iPad ---------- */
+body.kid-mode{max-width:1000px; padding-bottom:calc(24px + env(safe-area-inset-bottom,0px));}
+body.kid-mode > .tabbar, body.kid-mode > .fab, body.kid-mode .budget-only{display:none;}
+body.kid-mode .appearance-label{margin-top:0; padding-top:0; border-top:none;}
+body.kid-mode header{padding-inline:24px;}
+body.kid-mode main{padding:20px 20px 8px;}
+
+.kid-layout{display:grid; gap:14px; grid-template-columns:minmax(0, 1fr); grid-template-areas:"bal" "chores" "goal" "hist";}
+.kid-layout .summary-card + .summary-card{margin-top:0;}
+@media (min-width:700px){
+  .kid-layout{grid-template-columns:minmax(0, 5fr) minmax(0, 7fr); grid-template-areas:"bal chores" "goal chores" "hist chores"; align-items:start;}
+  .kid-chores{min-height:100%;}
+  body.kid-mode .sheet{max-width:560px; border-radius:24px 24px 0 0;}
+}
+.kid-balance{text-align:center; padding:22px 18px;}
+.kid-big{font-family:'Unbounded',sans-serif; font-size:44px; font-weight:700; letter-spacing:-1px; margin:6px 0 4px;}
+.kid-goal h3, .kid-chores h3, .kid-history h3{display:flex; justify-content:space-between; align-items:center; font-size:15px;}
+.goal-edit{padding:0; font-size:13.5px;}
+.kid-goal-empty{font-size:15px; color:var(--ink-soft); margin-bottom:6px;}
+.kid-goal-name{font-size:18px; font-weight:600;}
+.kid-goal-nums{font-size:14px; color:var(--ink-soft); margin:4px 0 10px;}
+.kid-goal-nums b{color:var(--ink); font-size:16px;}
+.kid-bar{height:12px; border-radius:7px;}
+.kid-bar .bar-fill{border-radius:7px;}
+.kid-goal-left{font-size:13.5px; color:var(--ink-soft); margin-top:8px;}
+.kid-goal-left.reached{color:var(--ok); font-weight:600;}
+
+.kid-row{display:flex; align-items:center; gap:14px; padding:16px 0; border-top:1px solid var(--glass-border-soft);}
+.kid-chores h3 + .kid-row{border-top:none;}
+.kid-row-text{flex:1; min-width:0;}
+.kid-row-title{font-size:17px; font-weight:500;}
+.kid-row-meta{font-size:12.5px; color:var(--ink-faint); margin-top:3px;}
+.kid-row-meta .notify-link{padding:0; font-size:12.5px;}
+.kid-row-note{font-size:13px; color:var(--warn); margin-top:4px;}
+.kid-row-amt{font-size:17px; font-weight:600; flex-shrink:0;}
+.kid-row.waiting .kid-row-title, .kid-row.waiting .kid-row-amt{color:var(--ink-soft);}
+.kid-row.finished .kid-row-title{color:var(--ink-faint); text-decoration:line-through;}
+.kid-check{width:28px; height:28px; border-radius:50%; background:var(--ok); color:var(--on-accent); display:flex; align-items:center; justify-content:center; font-size:14px; flex-shrink:0;}
+.done-btn{
+  flex-shrink:0; min-width:92px; padding:13px 20px; border-radius:16px; border:1px solid var(--button-line);
+  background:var(--accent-soft); color:var(--ink); font-size:16px; font-weight:600;
+}
+.done-btn.pressed{background:var(--ok); border-color:var(--ok); color:var(--on-accent);}
+.kid-section{font-size:12.5px; font-weight:600; color:var(--ink-soft); text-transform:none; margin:18px 0 0;}
+.kid-empty{font-size:15px; color:var(--ink-soft); padding:14px 0 4px;}
+
+/* "Anyone" chores */
+.pick-kid{display:flex; align-items:center; gap:8px; flex-wrap:wrap; margin-top:8px; font-size:12.5px; color:var(--ink-soft);}
+.pick-kid .row-btn{padding:6px 14px;}
+.grab-tag{display:inline-block; font-size:11.5px; font-weight:600; color:var(--accent); border:1px solid var(--button-line); border-radius:999px; padding:1px 8px; margin-right:4px;}
+#choreKidChips{flex-wrap:wrap;}

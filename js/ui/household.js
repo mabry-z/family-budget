@@ -15,9 +15,11 @@ const passwordError = document.getElementById('passwordError');
 const passwordSubmit = document.getElementById('passwordSubmit');
 
 const MIN_PASSWORD = 8;
-const ROLE_LABELS = { owner: 'Owner', member: 'Member' };
+const PIN_LENGTH = 6; // Supabase's shortest allowed password
+const ROLE_LABELS = { owner: 'Owner', member: 'Member', kid: 'Kid' };
 
 let signedInEmail = '';
+let isKid = false;
 
 // ctx: { onChangePassword(password), onSignOut() }
 export function initHousehold(ctx) {
@@ -34,11 +36,14 @@ export function initHousehold(ctx) {
   passwordForm.addEventListener('submit', async e => {
     e.preventDefault();
     const password = newPasswordInput.value;
-    if (password.length < MIN_PASSWORD) {
+    if (isKid && !new RegExp(`^\\d{${PIN_LENGTH}}$`).test(password)) {
+      return showFormError(passwordError, `Use ${PIN_LENGTH} numbers.`);
+    }
+    if (!isKid && password.length < MIN_PASSWORD) {
       return showFormError(passwordError, `Use at least ${MIN_PASSWORD} characters.`);
     }
     if (password !== confirmPasswordInput.value) {
-      return showFormError(passwordError, 'The two passwords don’t match.');
+      return showFormError(passwordError, isKid ? 'The two PINs don’t match.' : 'The two passwords don’t match.');
     }
     showFormError(passwordError, '');
     passwordSubmit.disabled = true;
@@ -75,16 +80,33 @@ export function initHousehold(ctx) {
   });
 }
 
-// info: household_info() result ({ name, role, members: [{ email, role, is_me }] }) or null.
+// Kids change a 6-digit PIN instead of a password.
+function setKidLabels() {
+  openPasswordBtn.textContent = 'Change PIN';
+  document.querySelector('#passwordBackdrop .sheet-head h2').textContent = 'Change PIN';
+  document.getElementById('newPasswordLabel').textContent = 'New PIN';
+  document.getElementById('passwordHint').textContent = `${PIN_LENGTH} numbers. You’ll stay signed in here.`;
+  passwordSubmit.textContent = 'Change PIN';
+  [newPasswordInput, confirmPasswordInput].forEach(i => { i.inputMode = 'numeric'; i.maxLength = PIN_LENGTH; });
+}
+
+// info: household_info() result ({ name, role, display_name?, members: [{ email, role, display_name, is_me }] }) or null.
 export function renderHousehold(info, email) {
   signedInEmail = email;
+  isKid = info?.role === 'kid';
+  if (isKid) {
+    setKidLabels();
+    infoEl.innerHTML = `<div class="household-name">${esc(info.name)}</div>
+      <div class="member-row"><span class="email">Signed in as ${esc(info.display_name ?? 'you')}</span><span class="role">Kid</span></div>`;
+    return;
+  }
   if (!info) {
     infoEl.innerHTML = `<div class="empty">Couldn’t load your household. Signed in as ${esc(email)}.</div>`;
     return;
   }
   const members = (info.members ?? []).map(m => `
     <div class="member-row">
-      <span class="email">${esc(m.email)}${m.is_me ? ' (you)' : ''}</span>
+      <span class="email">${esc(m.role === 'kid' ? (m.display_name ?? 'Kid') : m.email)}${m.is_me ? ' (you)' : ''}</span>
       <span class="role">${ROLE_LABELS[m.role] ?? esc(m.role)}</span>
     </div>`).join('');
   infoEl.innerHTML = `<div class="household-name">${esc(info.name)}</div>${members}`;

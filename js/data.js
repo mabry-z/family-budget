@@ -231,3 +231,102 @@ export function setFixedPaid(id, isPaid) {
 export function saveSettings(args) {
   return run(supabase.rpc('save_settings', args));
 }
+
+// ---------- Chores (migration 013) ----------
+// Everything here is read-only through tables; every change is a function
+// that checks who's asking (parents vs the kid themselves).
+
+// Creates today's tasks for repeating chores and expires missed ones.
+export function ensureChoreTasks(todayISO) {
+  return run(supabase.rpc('ensure_chore_tasks', { p_today: todayISO }));
+}
+
+// The household's kids (parents only; a kid gets none).
+export function loadKids() {
+  return run(supabase.from('household_members')
+    .select('user_id, display_name')
+    .eq('role', 'kid')
+    .order('display_name'));
+}
+
+export function loadChores() {
+  return run(supabase.from('chores')
+    .select('id, kid_id, title, amount, repeat, weekdays')
+    .eq('active', true)
+    .order('title'));
+}
+
+// Still to do or waiting, plus anything that changed in the last two weeks.
+export function loadChoreTasks() {
+  const since = new Date(Date.now() - 14 * 24 * 60 * 60 * 1000).toISOString();
+  return run(supabase.from('chore_tasks')
+    .select('id, chore_id, kid_id, due_on, amount, status, note, done_at, done_by, reviewed_at, reviewed_by, updated_at, chore:chores(title, repeat)')
+    .or(`status.in.(open,done,sent_back),updated_at.gte.${since}`)
+    .order('due_on')
+    .order('id'));
+}
+
+export async function loadBalances() {
+  const rows = await run(supabase.from('kid_balances').select('kid_id, balance'));
+  return new Map(rows.map(r => [r.kid_id, r.balance]));
+}
+
+export async function loadGoals() {
+  const rows = await run(supabase.from('kid_goals').select('kid_id, name, target'));
+  return new Map(rows.map(r => [r.kid_id, r]));
+}
+
+// Newest first.
+export function loadLedger(kidId, limit = 60) {
+  let q = supabase.from('kid_ledger')
+    .select('id, kid_id, amount, kind, note, created_at, created_by')
+    .order('created_at', { ascending: false })
+    .limit(limit);
+  if (kidId) q = q.eq('kid_id', kidId);
+  return run(q);
+}
+
+export function saveChore({ id = null, kidId, title, amount, repeat, weekdays }, todayISO) {
+  return run(supabase.rpc('save_chore', {
+    p_id: id, p_kid: kidId, p_title: title, p_amount: amount,
+    p_repeat: repeat, p_weekdays: weekdays, p_today: todayISO,
+  }));
+}
+
+export function deleteChore(id) {
+  return run(supabase.rpc('delete_chore', { p_id: id }));
+}
+
+// A kid: 'done' (waits for a parent). A parent: 'approved' straight away;
+// for an "Anyone" chore the parent says which kid did it.
+export function markChoreDone(taskId, kidId = null) {
+  return run(supabase.rpc('mark_chore_done', { p_task: taskId, p_kid: kidId }));
+}
+
+export function undoChoreDone(taskId) {
+  return run(supabase.rpc('undo_chore_done', { p_task: taskId }));
+}
+
+export function reviewChore(taskId, approve, note = null) {
+  return run(supabase.rpc('review_chore', { p_task: taskId, p_approve: approve, p_note: note }));
+}
+
+export function payOut(kidId, amount, note = null) {
+  return run(supabase.rpc('pay_out', { p_kid: kidId, p_amount: amount, p_note: note }));
+}
+
+export function addBonus(kidId, amount, note = null) {
+  return run(supabase.rpc('add_bonus', { p_kid: kidId, p_amount: amount, p_note: note }));
+}
+
+export function removeLedgerEntry(id) {
+  return run(supabase.rpc('remove_ledger_entry', { p_id: id }));
+}
+
+export function setGoal(name, target) {
+  return run(supabase.rpc('set_goal', { p_name: name, p_target: target }));
+}
+
+export function clearGoal() {
+  return run(supabase.rpc('clear_goal'));
+}

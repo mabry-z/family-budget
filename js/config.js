@@ -23,6 +23,15 @@ export const CATEGORY_COLORS = [
 // household role (see household_info() in migration 007).
 export const AUTHOR_COLORS = { owner: '#7CA3F2', member: '#E39BB0' };
 
+// Kids sign in with their name + a 6-digit PIN; behind it is an account
+// named <name>@KID_EMAIL_DOMAIN (see kidEmail() in js/chores.js and
+// migration 013). ".invalid" can never be a real address, so no email is
+// ever sent to it.
+export const KID_EMAIL_DOMAIN = 'kids.cadence.invalid';
+
+// Each kid's colour in Chores, handed out in order of their names.
+export const KID_COLORS = ['#5BC7A6', '#F2A65C', '#B69CF2', '#6BD0E0'];
+
 // Public half of the key phone notifications are signed with (see
 // docs/notifications-plan.md). The private half is only in Supabase, as the
 // notify-purchase function's VAPID_PRIVATE_KEY secret.
