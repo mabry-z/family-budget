@@ -1,8 +1,9 @@
 # Plan: Chores
 
-Status (2026-10-27): **built, not yet set up or pushed.** Migration
-`013_chores.sql`, the updated `notify-purchase` function and the app are
-written; see "Setup" below. Read `CLAUDE.md` first. Owner's answers are at
+Status (2026-10-27): **live.** Kid accounts created, migration 013 run,
+notify-purchase v4 deployed, app pushed. Checked signed in as Luke: no
+budget rows, tables, views or members visible; parents unchanged. Left:
+step 5 of "Setup" on each iPad. Read `CLAUDE.md` first. Owner's answers are at
 the end.
 
 ## Goals
