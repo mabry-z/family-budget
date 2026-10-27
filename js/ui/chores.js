@@ -3,10 +3,9 @@
 // See docs/chores-plan.md. Kids get js/ui/kid.js instead.
 import * as db from '../data.js';
 import { KID_COLORS } from '../config.js';
-import { money } from '../budget.js';
 import { today, toISO } from '../paydays.js';
 import {
-  WEEKDAYS, WEEKDAY_ORDER, repeatLabel, payLabel, parseDollars, dueNote, goalProgress, ledgerLabel,
+  WEEKDAYS, WEEKDAY_ORDER, repeatLabel, payLabel, parseCents, cash, cashInput, dueNote, goalProgress, ledgerLabel,
 } from '../chores.js';
 import { esc, errorMessage, showToast, showFormError, openSheet, closeSheet, wireSheet, selectChip } from './dom.js';
 
@@ -142,8 +141,8 @@ function kidCards() {
     const prog = goalProgress(goal, balance);
     return `<button type="button" class="kid-card" data-kid="${kid.user_id}">
       <div class="kid-card-name">${kidDot(kid)}${esc(kid.display_name)}</div>
-      <div class="kid-card-balance">${money(balance)}</div>
-      ${goal ? `<div class="kid-card-goal">${esc(goal.name)} · ${prog.reached ? 'reached!' : `${money(prog.left)} to go`}</div>
+      <div class="kid-card-balance">${cash(balance)}</div>
+      ${goal ? `<div class="kid-card-goal">${esc(goal.name)} · ${prog.reached ? 'reached!' : `${cash(prog.left)} to go`}</div>
         <div class="bar-track mini"><div class="bar-fill fill-ok" style="width:${prog.pct}%"></div></div>`
         : '<div class="kid-card-goal">No goal yet</div>'}
       <div class="kid-card-link">Pay out or bonus ›</div>
@@ -280,10 +279,10 @@ async function submitChore(e) {
   const title = choreName.value.trim();
   const picked = choreKidChips.querySelector('.chip.selected')?.dataset.value;
   const kidId = picked === ANYONE ? null : picked;
-  const amount = parseDollars(choreAmount.value);
+  const amount = parseCents(choreAmount.value);
   if (!title) return showFormError(choreError, 'Give the chore a name.');
   if (!picked) return showFormError(choreError, 'Pick who it’s for.');
-  if (amount == null) return showFormError(choreError, 'Enter what it pays, in whole dollars ($0 is fine).');
+  if (amount == null) return showFormError(choreError, 'Enter what it pays, like 2 or 0.50 ($0 is fine).');
   if (amount > 1000) return showFormError(choreError, 'Keep it to $1,000 or less.');
   showFormError(choreError, '');
   choreSubmit.disabled = true;
@@ -403,8 +402,8 @@ function renderMoneyHead() {
   const goal = data.goals.get(moneyKid.user_id);
   const prog = goalProgress(goal, balance);
   moneyHead.innerHTML = `<div class="left-label">Balance</div>
-    <div class="left-amount">${money(balance)}</div>
-    ${goal ? `<div class="kid-card-goal">Saving for ${esc(goal.name)} (${money(goal.target)}) · ${prog.reached ? 'reached!' : `${money(prog.left)} to go`}</div>
+    <div class="left-amount">${cash(balance)}</div>
+    ${goal ? `<div class="kid-card-goal">Saving for ${esc(goal.name)} (${cash(goal.target)}) · ${prog.reached ? 'reached!' : `${cash(prog.left)} to go`}</div>
       <div class="bar-track"><div class="bar-fill fill-ok" style="width:${prog.pct}%"></div></div>` : ''}`;
 }
 
@@ -415,9 +414,9 @@ function updateMoneyForm({ resetAmount = false } = {}) {
   moneyAmountLabel.textContent = kind === 'payout' ? 'Amount paid' : 'Bonus amount';
   moneyNote.placeholder = kind === 'payout' ? 'e.g. Cash, or Lego castle' : 'e.g. Great report card';
   moneyHint.textContent = kind === 'payout'
-    ? `Takes it off ${moneyKid.display_name}’s balance (up to ${money(balance)}). Doesn’t touch the budget.`
+    ? `Takes it off ${moneyKid.display_name}’s balance (up to ${cash(balance)}). Doesn’t touch the budget.`
     : `Adds to ${moneyKid.display_name}’s balance. They get a notification.`;
-  if (resetAmount) moneyAmount.value = kind === 'payout' && balance > 0 ? String(balance) : '';
+  if (resetAmount) moneyAmount.value = kind === 'payout' && balance > 0 ? cashInput(balance) : '';
 }
 
 async function renderHistory() {
@@ -427,7 +426,7 @@ async function renderHistory() {
     historyEl.innerHTML = entries.length ? entries.map(e => `
       <div class="ledger-row">
         <div class="ledger-text"><div>${esc(ledgerLabel(e))}</div><div class="todo-meta">${esc(shortWhen(e.created_at))}</div></div>
-        <div class="ledger-amt${e.amount > 0 ? ' plus' : ''}">${e.amount > 0 ? '+' : '−'}${money(Math.abs(e.amount))}</div>
+        <div class="ledger-amt${e.amount > 0 ? ' plus' : ''}">${e.amount > 0 ? '+' : '−'}${cash(Math.abs(e.amount))}</div>
         <button type="button" class="remove-btn" data-entry="${e.id}" aria-label="Remove this entry">✕</button>
       </div>`).join('') : '<div class="empty">Nothing yet.</div>';
   } catch (err) {
@@ -454,9 +453,9 @@ function openMoneySheet(kidId) {
 
 async function submitMoney(e) {
   e.preventDefault();
-  const amount = parseDollars(moneyAmount.value);
+  const amount = parseCents(moneyAmount.value);
   const kind = moneyKind();
-  if (!amount) return showFormError(moneyError, 'Enter an amount in whole dollars.');
+  if (!amount) return showFormError(moneyError, 'Enter an amount, like 5 or 2.50.');
   showFormError(moneyError, '');
   moneySubmit.disabled = true;
   try {
@@ -464,8 +463,8 @@ async function submitMoney(e) {
     if (kind === 'payout') await db.payOut(moneyKid.user_id, amount, note);
     else await db.addBonus(moneyKid.user_id, amount, note);
     showToast(kind === 'payout'
-      ? `Paid out ${money(amount)} to ${moneyKid.display_name}.`
-      : `Bonus of ${money(amount)} for ${moneyKid.display_name}.`, { ok: true });
+      ? `Paid out ${cash(amount)} to ${moneyKid.display_name}.`
+      : `Bonus of ${cash(amount)} for ${moneyKid.display_name}.`, { ok: true });
     await loadChores();
     moneyNote.value = '';
     updateMoneyForm({ resetAmount: true });

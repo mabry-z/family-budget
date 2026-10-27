@@ -119,7 +119,9 @@ Static HTML/CSS/JS (ES modules, no build step) served by GitHub Pages from
 
 ## Rules the app must keep
 
-- Whole dollars only — never cents.
+- Whole dollars only — never cents. **Exception: chore money** (chore
+  amounts, bonuses, pay-outs, kid balances) is dollars and cents (migration
+  014; `cash()` / `parseCents()` in `js/chores.js`). Savings goals stay whole.
 - **Extra is never stored**: starting − fixed costs − other categories'
   (effective) budgets + carry-in. An emptied category's budget is what it
   spent (clamped to 0..amount); the rest goes to that period's Extra.
@@ -184,7 +186,7 @@ Static HTML/CSS/JS (ES modules, no build step) served by GitHub Pages from
   testing — the owner tests anything that writes. Browsing to a period that
   doesn't exist yet creates it, so stay on existing periods.
 - **Migrations are run by the owner** in the Supabase SQL editor. Write them
-  to `supabase/migrations/NNN_name.sql` (next number: **014**), make them
+  to `supabase/migrations/NNN_name.sql` (next number: **015**), make them
   safe to re-run, put the file on the clipboard
   (`Get-Content -Raw -Encoding UTF8 <file> | Set-Clipboard` — without
   `-Encoding UTF8`, Windows PowerShell garbles "·", "’", "—" into "Â·" etc.) and give short click-by-click

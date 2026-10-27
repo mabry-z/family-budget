@@ -26,10 +26,36 @@ export function repeatLabel(chore) {
   return 'One time';
 }
 
-// "$2", or "No pay" for $0 chores.
-export const payLabel = amount => (amount > 0 ? `$${amount.toLocaleString('en-US')}` : 'No pay');
+// Chore money is dollars and cents (migration 014): "$2", "$0.50",
+// "$12.25". The budget elsewhere stays whole dollars (money() in budget.js).
+export const roundCents = n => Math.round((Number(n) || 0) * 100) / 100;
 
-// Whole dollars from a text box, or null.
+export function cash(n) {
+  const v = roundCents(n);
+  const abs = Math.abs(v);
+  const text = Number.isInteger(abs)
+    ? abs.toLocaleString('en-US')
+    : abs.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+  return (v < 0 ? '−$' : '$') + text;
+}
+
+// "$2" or "$0.50", or "No pay" for $0 chores.
+export const payLabel = amount => (Number(amount) > 0 ? cash(amount) : 'No pay');
+
+// For a text box: "2", "0.50".
+export const cashInput = n => {
+  const v = roundCents(n);
+  return Number.isInteger(v) ? String(v) : v.toFixed(2);
+};
+
+// Dollars and cents from a text box ("2", "0.5", ".50", "$1.25"), or null.
+export function parseCents(text) {
+  const clean = String(text ?? '').replace(/[$,\s]/g, '');
+  if (!/^(\d+(\.\d{0,2})?|\.\d{1,2})$/.test(clean)) return null;
+  return roundCents(clean);
+}
+
+// Whole dollars from a text box (savings goals), or null.
 export function parseDollars(text) {
   const clean = String(text ?? '').replace(/[$,\s]/g, '');
   if (!/^\d+$/.test(clean)) return null;
@@ -71,7 +97,7 @@ export function goalProgress(goal, balance) {
   const have = Math.max(0, balance);
   return {
     pct: Math.min(100, Math.round((have / goal.target) * 100)),
-    left: Math.max(0, goal.target - have),
+    left: roundCents(Math.max(0, goal.target - have)),
     reached: have >= goal.target,
   };
 }

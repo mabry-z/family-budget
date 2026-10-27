@@ -3,9 +3,9 @@
 // iPad the page widens: money on the left, chores on the right.
 // See docs/chores-plan.md.
 import * as db from '../data.js';
-import { money } from '../budget.js';
+import { money } from '../budget.js'; // whole dollars: savings goal targets only
 import { today, toISO } from '../paydays.js';
-import { kidTaskGroups, payLabel, parseDollars, dueNote, goalProgress, ledgerLabel } from '../chores.js';
+import { kidTaskGroups, payLabel, parseDollars, cash, roundCents, dueNote, goalProgress, ledgerLabel } from '../chores.js';
 import { esc, errorMessage, showToast, showFormError, openSheet, closeSheet, wireSheet } from './dom.js';
 
 const bodyEl = document.getElementById('kidBody');
@@ -28,7 +28,7 @@ export async function loadKid({ quiet = false } = {}) {
     ]);
     // Theirs, plus "Anyone" chores nobody has claimed yet.
     data.tasks = tasks.filter(t => t.kid_id === data.me.user_id || t.kid_id == null);
-    data.balance = balances.get(data.me.user_id) ?? 0;
+    data.balance = Number(balances.get(data.me.user_id) ?? 0);
     data.goal = goals.get(data.me.user_id) ?? null;
     data.ledger = ledger;
     data.loaded = true;
@@ -39,11 +39,11 @@ export async function loadKid({ quiet = false } = {}) {
 }
 
 function balanceCard(waiting) {
-  const pending = waiting.reduce((n, t) => n + t.amount, 0);
+  const pending = roundCents(waiting.reduce((n, t) => n + Number(t.amount), 0));
   return `<div class="summary-card kid-balance" style="grid-area:bal">
     <div class="left-label">You’ve earned</div>
-    <div class="kid-big">${money(data.balance)}</div>
-    <div class="left-note">${pending > 0 ? `+${money(pending)} being checked by a parent` : 'Finish chores to earn more'}</div>
+    <div class="kid-big">${cash(data.balance)}</div>
+    <div class="left-note">${pending > 0 ? `+${cash(pending)} being checked by a parent` : 'Finish chores to earn more'}</div>
   </div>`;
 }
 
@@ -59,9 +59,9 @@ function goalCard() {
   return `<div class="summary-card kid-goal" style="grid-area:goal">
     <h3>My goal <button type="button" class="notify-link goal-edit" data-action="goal">Change</button></h3>
     <div class="kid-goal-name">${esc(data.goal.name)}</div>
-    <div class="kid-goal-nums"><b>${money(Math.max(0, data.balance))}</b> of ${money(data.goal.target)}</div>
+    <div class="kid-goal-nums"><b>${cash(Math.max(0, data.balance))}</b> of ${money(data.goal.target)}</div>
     <div class="bar-track kid-bar"><div class="bar-fill fill-ok" style="width:${prog.pct}%"></div></div>
-    <div class="kid-goal-left${prog.reached ? ' reached' : ''}">${prog.reached ? 'You did it! Ask a parent about getting it.' : `${money(prog.left)} to go`}</div>
+    <div class="kid-goal-left${prog.reached ? ' reached' : ''}">${prog.reached ? 'You did it! Ask a parent about getting it.' : `${cash(prog.left)} to go`}</div>
   </div>`;
 }
 
@@ -100,7 +100,7 @@ function choresCard({ todo, waiting, finished }) {
     <div class="kid-row finished">
       <span class="kid-check">✓</span>
       <div class="kid-row-text"><div class="kid-row-title">${esc(t.chore?.title ?? 'Chore')}</div></div>
-      <div class="kid-row-amt plus">${t.amount > 0 ? `+${money(t.amount)}` : ''}</div>
+      <div class="kid-row-amt plus">${t.amount > 0 ? `+${cash(t.amount)}` : ''}</div>
     </div>`).join('');
 
   const empty = !todo.length && !waiting.length
@@ -119,7 +119,7 @@ function historyCard() {
   return `<div class="summary-card kid-history" style="grid-area:hist">
     <h3>Recent</h3>
     ${data.ledger.map(e => `<div class="summary-row"><span>${esc(ledgerLabel(e))}</span>
-      <span class="${e.amount > 0 ? 'plus' : ''}">${e.amount > 0 ? '+' : '−'}${money(Math.abs(e.amount))}</span></div>`).join('')}
+      <span class="${e.amount > 0 ? 'plus' : ''}">${e.amount > 0 ? '+' : '−'}${cash(Math.abs(e.amount))}</span></div>`).join('')}
   </div>`;
 }
 

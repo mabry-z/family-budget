@@ -283,8 +283,8 @@
     </div>
     <div class="field">
       <label for="choreAmount">Pays</label>
-      <div class="amount-field"><span>$</span><input type="text" id="choreAmount" inputmode="numeric" autocomplete="off" placeholder="2"></div>
-      <div class="hint">Whole dollars. $0 is fine for chores that don’t pay.</div>
+      <div class="amount-field"><span>$</span><input type="text" id="choreAmount" inputmode="decimal" autocomplete="off" placeholder="2 or 0.50"></div>
+      <div class="hint">Cents are fine, like 0.50. $0 is fine for chores that don’t pay.</div>
     </div>
     <div class="field">
       <label>Repeats</label>
@@ -332,7 +332,7 @@
     </div>
     <div class="field">
       <label for="moneyAmount" id="moneyAmountLabel">Amount</label>
-      <div class="amount-field"><span>$</span><input type="text" id="moneyAmount" inputmode="numeric" autocomplete="off"></div>
+      <div class="amount-field"><span>$</span><input type="text" id="moneyAmount" inputmode="decimal" autocomplete="off"></div>
       <div class="hint" id="moneyHint"></div>
     </div>
     <div class="field">

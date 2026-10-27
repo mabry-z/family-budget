@@ -208,8 +208,11 @@ async function announcePurchase(importId) {
   return reply({ sent });
 }
 
-// Chore money is whole dollars already.
-const wholeDollars = n => '$' + Number(n).toLocaleString('en-US');
+// Chore money is dollars and cents (migration 014): "$2", "$0.50".
+const wholeDollars = n => {
+  const v = Math.round(Number(n) * 100) / 100;
+  return '$' + (Number.isInteger(v) ? v.toLocaleString('en-US') : v.toFixed(2));
+};
 
 async function kidName(userId) {
   const rows = await rest(`household_members?user_id=${eq(userId)}&select=display_name`);

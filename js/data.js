@@ -266,9 +266,10 @@ export function loadChoreTasks() {
     .order('id'));
 }
 
+// Dollars and cents (migration 014).
 export async function loadBalances() {
   const rows = await run(supabase.from('kid_balances').select('kid_id, balance'));
-  return new Map(rows.map(r => [r.kid_id, r.balance]));
+  return new Map(rows.map(r => [r.kid_id, Number(r.balance)]));
 }
 
 export async function loadGoals() {

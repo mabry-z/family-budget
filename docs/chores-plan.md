@@ -173,6 +173,12 @@ Kid:
 10. A chore can be for **Anyone**: it shows on both kids' lists until one
     of them marks it done; that kid claims it (and its money).
 
+## Cents (migration 014)
+
+Chore amounts, bonuses, pay-outs and balances are dollars and cents
+(`numeric(8,2)`), e.g. $0.50. Shown as "$2" when whole, "$0.50" otherwise.
+The budget and savings goals stay whole dollars.
+
 ## "Anyone" chores
 
 - `chores.kid_id` is null. Each task starts with no kid and shows on every
