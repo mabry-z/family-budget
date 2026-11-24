@@ -165,6 +165,10 @@ Static HTML/CSS/JS (ES modules, no build step) served by GitHub Pages from
 - **Savings purchases never count**: not in category cards, Extra,
   carry-over, "Spent so far" or Insights. They do show in Recent activity,
   Summary ("Paid from savings · not counted") and Card spending.
+- Recent activity (Overview) lists the whole period, newest first, and
+  scrolls inside its card (about five rows tall; the page stays still).
+  Chips "All" / "Savings · N" show only when the period has a savings
+  purchase; a new period starts back on All.
 - Card alert purchases count only once reviewed and added; they go into the
   period the purchase happened in, with the cardholder's dot.
 - Notifications: every phone that turned them on gets every card purchase,

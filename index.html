@@ -62,9 +62,13 @@
   <div class="screen active" id="screen-overview">
     <div class="review-card" id="importsCard" hidden></div>
     <div class="cards" id="categoryCards"></div>
-    <div class="summary-card" style="margin-top:14px;">
-      <h3>Recent activity</h3>
-      <div id="recentList"></div>
+    <div class="summary-card recent-card" style="margin-top:14px;">
+      <div class="recent-head">
+        <h3>Recent activity</h3>
+        <div class="chips recent-chips" id="recentChips" hidden></div>
+      </div>
+      <div class="recent-scroll" id="recentScroll"><div id="recentList"></div></div>
+      <div class="recent-count" id="recentCount" hidden></div>
     </div>
   </div>
 

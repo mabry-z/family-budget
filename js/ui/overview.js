@@ -4,12 +4,18 @@ import { purchaseDate, newestPurchaseFirst, toISO } from '../paydays.js';
 
 const cardsEl = document.getElementById('categoryCards');
 const recentEl = document.getElementById('recentList');
+const recentScrollEl = document.getElementById('recentScroll');
+const recentChipsEl = document.getElementById('recentChips');
+const recentCountEl = document.getElementById('recentCount');
 
 let expandedId = null;
 let expensesById = new Map();
 let sweepable = []; // categories with money left that haven't been emptied
 let authorColors = new Map(); // user_id → dot colour; see renderOverview
 let cardsById = new Map(); // this period's budget cards, for dating overages
+let recentFilter = 'all'; // 'all' | 'savings' — the Recent activity chips
+let recentPeriod = null; // which period Recent activity last showed
+let lastRender = null; // renderOverview's arguments, to redraw when a chip is tapped
 
 function shortDate(d) {
   return `${MONTHS_SHORT[d.getMonth()]} ${d.getDate()}`;
@@ -161,6 +167,19 @@ export function initOverview({ onEditExpense, onEmpty }) {
     expandCategory(expandedId === id ? null : id);
   });
 
+  recentChipsEl.addEventListener('click', e => {
+    const chip = e.target.closest('[data-filter]');
+    if (!chip || chip.dataset.filter === recentFilter) return;
+    recentFilter = chip.dataset.filter;
+    recentScrollEl.scrollTop = 0;
+    if (lastRender) renderOverview(...lastRender);
+  });
+
+  // The fade at the bottom of the list shows while there's more to scroll to.
+  const update = () => requestAnimationFrame(updateRecentFade);
+  recentScrollEl.addEventListener('scroll', update, { passive: true });
+  new ResizeObserver(update).observe(recentScrollEl);
+
   recentEl.addEventListener('click', e => {
     const savings = e.target.closest('[data-expense]'); // savings rows have no category card
     if (savings) {
@@ -172,39 +191,70 @@ export function initOverview({ onEditExpense, onEmpty }) {
   });
 }
 
+function updateRecentFade() {
+  const el = recentScrollEl;
+  el.classList.toggle('more-below', el.scrollHeight - el.scrollTop - el.clientHeight > 4);
+}
+
+function recentRowHtml(e, budget, nameById) {
+  if (e.isOverage) return overageRowHtml(e, `${shortDate(purchaseDate(e))} · Auto`);
+  if (e.from_savings) {
+    return `<div class="expense-row clickable excluded" data-expense="${e.id}">`
+      + `<span class="merchant">${authorDotHtml(e)}${esc(e.merchant || 'Unknown')}<span class="savings-tag">Savings</span></span>`
+      + `<span class="meta">${shortDate(purchaseDate(e))} · Not in budget</span>`
+      + amountHtml(e)
+      + `</div>`;
+  }
+  const catId = budget.bucketOf(e);
+  return `<div class="expense-row clickable" data-cat="${catId}">`
+    + `<span class="merchant">${authorDotHtml(e)}${esc(e.merchant || 'Unknown')}</span>`
+    + `<span class="meta">${shortDate(purchaseDate(e))} · ${esc(nameById.get(catId))}</span>`
+    + amountHtml(e)
+    + `</div>`;
+}
+
+const plural = (n, word) => `${n} ${word}${n === 1 ? '' : 's'}`;
+
 // authorColors: Map<user_id, hexColor> — who gets which dot; see app.js.
 // expenses: all of the period's, savings purchases included (only Recent
 // activity shows those; the budget cards never count them).
-export function renderOverview(budget, expenses, colors = new Map()) {
+// periodKey: which period this is — a new one starts back on "All", at the top.
+// Recent activity lists the whole period, newest first, and scrolls inside
+// its card; the chips switch between everything and savings purchases only.
+export function renderOverview(budget, expenses, colors = new Map(), periodKey = null) {
+  lastRender = [budget, expenses, colors, periodKey];
   authorColors = colors;
   cardsById = new Map(budget.cards.map(c => [c.id, c]));
   expensesById = new Map(expenses.map(e => [String(e.id), e]));
   sweepable = budget.cards.filter(c => !c.isExtra && !c.emptied && c.leftover > 0);
   cardsEl.innerHTML = budget.cards.map(cardHtml).join('');
 
+  const savings = expenses.filter(e => e.from_savings);
+  if (periodKey !== recentPeriod) {
+    recentPeriod = periodKey;
+    recentFilter = 'all';
+    recentScrollEl.scrollTop = 0;
+  }
+  if (!savings.length) recentFilter = 'all'; // the Savings chip only shows when there are some
+
+  recentChipsEl.hidden = !savings.length;
+  recentChipsEl.innerHTML = `<button type="button" class="chip${recentFilter === 'all' ? ' selected' : ''}" data-filter="all">All</button>`
+    + `<button type="button" class="chip${recentFilter === 'savings' ? ' selected' : ''}" data-filter="savings">Savings · ${savings.length}</button>`;
+
   const nameById = new Map(budget.cards.map(c => [c.id, c.name]));
   const extraCard = budget.cards.find(c => c.isExtra);
   const overages = extraCard.overages.map(o => datedOverage({ ...o, isOverage: true }));
-  const recent = [...expenses, ...overages]
-    .sort(newestPurchaseFirst)
-    .slice(0, 5);
+  const recent = (recentFilter === 'savings' ? savings : [...expenses, ...overages])
+    .sort(newestPurchaseFirst);
 
   recentEl.innerHTML = recent.length
-    ? recent.map(e => {
-        if (e.isOverage) return overageRowHtml(e, `${shortDate(purchaseDate(e))} · Auto`);
-        if (e.from_savings) {
-          return `<div class="expense-row clickable excluded" data-expense="${e.id}">`
-            + `<span class="merchant">${authorDotHtml(e)}${esc(e.merchant || 'Unknown')}<span class="savings-tag">Savings</span></span>`
-            + `<span class="meta">${shortDate(purchaseDate(e))} · Not in budget</span>`
-            + amountHtml(e)
-            + `</div>`;
-        }
-        const catId = budget.bucketOf(e);
-        return `<div class="expense-row clickable" data-cat="${catId}">`
-          + `<span class="merchant">${authorDotHtml(e)}${esc(e.merchant || 'Unknown')}</span>`
-          + `<span class="meta">${shortDate(purchaseDate(e))} · ${esc(nameById.get(catId))}</span>`
-          + amountHtml(e)
-          + `</div>`;
-      }).join('')
+    ? recent.map(e => recentRowHtml(e, budget, nameById)).join('')
     : '<div class="empty">Nothing yet this period. Tap + to add an expense.</div>';
+
+  const shown = recentFilter === 'savings' ? savings.length : expenses.length;
+  recentCountEl.hidden = !shown;
+  recentCountEl.textContent = recentFilter === 'savings'
+    ? `${plural(shown, 'savings purchase')} this period`
+    : `${plural(shown, 'purchase')} this period`;
+  requestAnimationFrame(updateRecentFade);
 }

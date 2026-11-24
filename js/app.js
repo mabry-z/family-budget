@@ -161,7 +161,7 @@ function render() {
     categoryIdOf,
     coverOverages: coversOverages(periodStartISO(state.period), state.overageStart),
   });
-  renderOverview(state.budget, state.expenses, state.authorColors);
+  renderOverview(state.budget, state.expenses, state.authorColors, JSON.stringify(state.period));
   renderBills(state.fixedCosts);
   renderSummary(state.budget, cardTotals(state.expenses, CARDS), {
     fixedCosts: state.fixedCosts,
